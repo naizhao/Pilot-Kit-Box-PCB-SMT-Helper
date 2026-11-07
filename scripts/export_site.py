@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""从已提交 Git 对象同步公开贴片快照，或打包本仓库快照。"""
+"""在本仓库准备公开贴片数据、发布或打包已提交站点。"""
 import argparse
 import json
 import os
@@ -7,7 +7,6 @@ import re
 import subprocess
 from pathlib import Path
 
-SOURCE_REPOSITORY = "naizhao/Pilot-Kit-Box-ESP32-P4"
 PUBLISH_REPOSITORY = "naizhao/Pilot-Kit-Box-PCB-SMT-Helper"
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -39,10 +38,14 @@ def check_public_privacy(repository, ref, replacements=None):
     home_path = re.compile(r"/(?:Users|home)/[^/\s\"'<>]+|[A-Za-z]:[\\/]+Users[\\/]+[^\\/\s\"'<>]+")
     findings = []
     for name in sorted(names):
+        if name == "data/batches.json" or "internal" in Path(name).parts:
+            raise ValueError("提交树含私有文件")
         content = replacements[name] if name in replacements else git(repository, "show", f"{ref}:{name}")
         for number, line in enumerate(content.decode("utf-8", errors="replace").splitlines(), 1):
             if home_path.search(line):
                 findings.append(f"{name}:{number}: user-home-path")
+        if name.endswith(".json"):
+            reject_personal_notes(name, content)
     if findings:
         raise ValueError("公开内容包含个人目录：\n" + "\n".join(findings))
 
@@ -63,48 +66,91 @@ def public_note(note):
     return note.strip(" ；;｜") if note != original else note
 
 
-def public_files(repository, ref, snapshot=False):
-    sha = resolve_commit(repository, ref)
-    prefix = "" if snapshot else "web/assembly/"
-    files = {"index.html": read_blob(repository, sha, prefix + "index.html")}
-    index_raw = read_blob(repository, sha, prefix + "data/index.json")
+PUBLIC_CODE = {"index.html", "README.md", "LICENSE", "CNAME", ".nojekyll",
+               ".gitignore", "data/.gitignore", "_build.json",
+               "scripts/export_site.py", "tests/test_export_site.py", ".github/workflows/pages.yml"}
+
+
+def validate_files(read, prepare=False):
+    index_raw = read("data/index.json")
     index = json.loads(index_raw)
     if not isinstance(index, list) or not index:
         raise ValueError("公开索引必须是非空数组")
+    files = {"data/index.json": index_raw}
     ids = set()
     for entry in index:
         board_id = entry.get("id") if isinstance(entry, dict) else None
         if (not isinstance(board_id, str) or not re.fullmatch(r"[a-z0-9][a-z0-9.-]*", board_id)
                 or board_id in {"index", "batches", "internal"} or board_id in ids):
-            raise ValueError(f"非法或重复公开板卡 id：{board_id!r}")
+            raise ValueError("非法或重复公开板卡 id")
         ids.add(board_id)
-        path = f"data/{board_id}.json"
-        raw = read_blob(repository, sha, prefix + path)
+        name = f"data/{board_id}.json"
+        raw = read(name)
         document = json.loads(raw)
+        if not isinstance(document, dict):
+            raise ValueError("板卡数据必须是对象")
         changed = False
-        if isinstance(document, dict):
-            for group in document.get("groups", []):
-                if isinstance(group.get("note"), str):
-                    original = group["note"]
-                    cleaned = public_note(original)
-                    if original != cleaned:
-                        group["note"] = cleaned
-                        changed = True
-        files[path] = ((json.dumps(document, ensure_ascii=False, separators=(",", ":"))).encode()
-                       if changed else raw)
-    files["data/index.json"] = index_raw
-    if snapshot:
-        build = read_blob(repository, sha, "_build.json")
-        metadata = json.loads(build)
-        if (metadata.get("source_repository") != SOURCE_REPOSITORY
-                or not re.fullmatch(r"[0-9a-f]{40}", metadata.get("source_sha", ""))):
-            raise ValueError("快照缺少有效源仓库和 source_sha")
-        files["_build.json"] = build
-    else:
-        files["_build.json"] = (json.dumps({"source_repository": SOURCE_REPOSITORY,
-                                            "source_sha": sha}, indent=2) + "\n").encode()
-    files["CNAME"] = b"smt.pilotkit.app\n"
-    files[".nojekyll"] = b""
+        for group in document.get("groups", []):
+            if isinstance(group.get("note"), str):
+                cleaned = public_note(group["note"])
+                if cleaned != group["note"]:
+                    if not prepare:
+                        raise ValueError(f"{name}: 原始个人 note，必须先 prepare")
+                    group["note"] = cleaned
+                    changed = True
+        files[name] = json.dumps(document, ensure_ascii=False, separators=(",", ":")).encode() if changed else raw
+    return files
+
+
+def reject_personal_notes(name, raw):
+    document = json.loads(raw)
+    if isinstance(document, dict):
+        for group in document.get("groups", []):
+            if isinstance(group, dict) and isinstance(group.get("note"), str):
+                if public_note(group["note"]) != group["note"]:
+                    raise ValueError(f"{name}: 原始个人 note，必须先 prepare")
+
+
+def check_contents(files):
+    home = re.compile(r"/(?:Users|home)/[^/\s\"'<>]+|[A-Za-z]:[\\/]+Users[\\/]+[^\\/\s\"'<>]+")
+    for name, raw in files.items():
+        if name.endswith(".json"):
+            reject_personal_notes(name, raw)
+        for number, line in enumerate(raw.decode("utf-8", errors="replace").splitlines(), 1):
+            if home.search(line):
+                raise ValueError(f"{name}:{number}: user-home-path")
+
+
+def prepare(repository):
+    def read(name):
+        path = repository / name
+        if path.is_symlink() or path.parent.is_symlink():
+            raise ValueError("拒绝符号链接公开文件")
+        return path.read_bytes()
+    files = validate_files(read, prepare=True)
+    for name in PUBLIC_CODE:
+        files[name] = read(name)
+    check_contents(files)
+    metadata = json.loads(files["_build.json"])
+    if metadata != {"source_repository": PUBLISH_REPOSITORY}:
+        raise ValueError("提交元数据必须仅标记本仓库来源")
+    write_files(repository, files)
+    return files
+
+
+def public_files(repository, ref):
+    sha = resolve_commit(repository, ref)
+    read = lambda name: read_blob(repository, sha, name)
+    files = validate_files(read)
+    # 校验整个提交树，打包则仅限站点所需文件。
+    check_public_privacy(repository, sha)
+    if json.loads(read("_build.json")) != {"source_repository": PUBLISH_REPOSITORY}:
+        raise ValueError("提交元数据必须仅标记本仓库来源")
+    files["index.html"] = read("index.html")
+    files["CNAME"] = read("CNAME")
+    files[".nojekyll"] = read(".nojekyll")
+    files["_build.json"] = (json.dumps({"source_repository": PUBLISH_REPOSITORY,
+                                        "source_sha": sha}, indent=2) + "\n").encode()
     return files
 
 
@@ -118,15 +164,14 @@ def write_files(output, files):
         if target.is_symlink() or target.parent.is_symlink():
             raise ValueError(f"拒绝写入符号链接路径：{name}")
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(content)
+        if not target.exists() or target.read_bytes() != content:
+            target.write_bytes(content)
 
 
-def export_site(repository, ref, output, snapshot=False):
-    if output.exists():
+def export_site(repository, ref, output):
+    if output.exists() or output.is_symlink():
         raise FileExistsError("打包目录必须不存在")
-    if snapshot:
-        check_public_privacy(repository, ref)
-    files = public_files(repository, ref, snapshot)
+    files = public_files(repository, ref)
     write_files(output, files)
     return files
 
@@ -143,47 +188,60 @@ def check_publish_target(repository):
         raise ValueError("暂存区非空，拒绝卷入已有暂存内容")
 
 
-def publish(repository, files, source_sha):
+def staged_files(repository):
+    names = git(repository, "ls-files", "-z").decode().split("\0")
+    files = {}
+    for name in filter(None, names):
+        mode = git(repository, "ls-files", "--stage", "--", name).decode().split(" ", 1)[0]
+        if mode != "100644":
+            raise ValueError("暂存树只允许普通文件")
+        files[name] = git(repository, "show", f":{name}")
+    allowed = PUBLIC_CODE | set(validate_files(files.__getitem__))
+    if set(files) - allowed:
+        raise ValueError("暂存树含非公开白名单文件")
+    check_contents(files)
+    if json.loads(files["_build.json"]) != {"source_repository": PUBLISH_REPOSITORY}:
+        raise ValueError("暂存元数据必须仅标记本仓库来源")
+    return files
+
+
+def publish(repository):
     check_publish_target(repository)
+    files = prepare(repository)
+    # HEAD 中所有未被工作区替换的已提交文件也必须满足公开边界。
+    names = set(filter(None, git(repository, "ls-tree", "-r", "--name-only", "-z", "HEAD").decode().split("\0")))
+    if names - set(files):
+        raise ValueError("提交树含非公开白名单文件")
     check_public_privacy(repository, "HEAD", files)
-    names = sorted(files)
-    # 逐个显式路径；旧索引已不引用的 JSON 可留在历史中，但不进入站点产物。
-    git(repository, "add", "--", *names)
-    if not git(repository, "diff", "--cached", "--name-only").strip():
-        print("快照无变化，跳过提交与推送。")
-        return
-    identity = os.environ.copy()
-    identity.update({"GIT_AUTHOR_NAME": "Pilot Kit", "GIT_COMMITTER_NAME": "Pilot Kit",
-                     "GIT_AUTHOR_EMAIL": "1012276+naizhao@users.noreply.github.com",
-                     "GIT_COMMITTER_EMAIL": "1012276+naizhao@users.noreply.github.com"})
-    git(repository, "commit", "-m", f"Update SMT snapshot from {source_sha}", env=identity)
+    git(repository, "add", "--", *sorted(files))
+    staged_files(repository)
+    if git(repository, "diff", "--cached", "--name-only").strip():
+        identity = os.environ.copy()
+        identity.update({"GIT_AUTHOR_NAME": "Pilot Kit", "GIT_COMMITTER_NAME": "Pilot Kit",
+                         "GIT_AUTHOR_EMAIL": "1012276+naizhao@users.noreply.github.com",
+                         "GIT_COMMITTER_EMAIL": "1012276+naizhao@users.noreply.github.com"})
+        git(repository, "commit", "-m", "Update SMT assistant", env=identity)
     git(repository, "push", "origin", "HEAD:refs/heads/main")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source", required=True, type=Path)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--prepare", action="store_true")
+    mode.add_argument("--publish", action="store_true")
+    mode.add_argument("--snapshot", action="store_true")
     parser.add_argument("--ref", default="HEAD")
     parser.add_argument("--output", type=Path)
-    parser.add_argument("--snapshot", action="store_true", help="从发布仓库快照打包，不读取源项目目录")
-    parser.add_argument("--publish", action="store_true", help="明确授权将白名单快照提交并推送至发布仓库 main")
     args = parser.parse_args()
     if args.snapshot:
-        if args.publish or args.output is None:
-            parser.error("--snapshot 需要 --output，且不能与 --publish 合用")
-        files = export_site(args.source, args.ref, args.output, snapshot=True)
+        if args.output is None:
+            parser.error("--snapshot 需要 --output")
+        files = export_site(ROOT, args.ref, args.output)
     else:
-        if args.output is not None:
-            parser.error("同步固定写入脚本所在发布仓库，不接受 --output")
-        if args.source.resolve() == ROOT.resolve():
-            parser.error("源项目不能是发布仓库自身")
-        if args.publish:
-            check_publish_target(ROOT)
-        files = public_files(args.source, args.ref)
-        write_files(ROOT, files)
-        if args.publish:
-            publish(ROOT, files, json.loads(files["_build.json"])["source_sha"])
-    print(f"已验证公开白名单：{len(files)} 文件；源 SHA：{json.loads(files['_build.json'])['source_sha']}")
+        if args.output is not None or args.ref != "HEAD":
+            parser.error("只有 snapshot 接受 output/ref")
+        files = publish(ROOT) if args.publish else prepare(ROOT)
+    print("公开内容校验完成")
 
 
 if __name__ == "__main__":

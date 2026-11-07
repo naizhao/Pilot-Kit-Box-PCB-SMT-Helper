@@ -31,14 +31,6 @@ class ExportSiteTests(unittest.TestCase):
         self.assertEqual(site.public_note(note),
                          "选型确认：`C111` → `C222`。上传 BOM 后需在匹配页确认料号。")
 
-    def test_source_export_sanitizes_only_note_and_preserves_structure(self):
-        files = self.files()
-        data = {"groups": [{"note": "§7 清单已下单", "mpn": "TEST", "qty": 7}], "tracks": [1, 2]}
-        files["web/assembly/data/v4.5-pwr.json"] = json.dumps(data).encode()
-        output, _ = self.export(files)
-        data["groups"][0]["note"] = ""
-        self.assertEqual(json.loads((output / "data/v4.5-pwr.json").read_text()), data)
-
     def test_git_failure_hides_command_and_stderr_paths(self):
         private = "/Users/" + "fictional-builder/private-project"
         failure = subprocess.CalledProcessError(128, ["git", "-C", private, "status"], stderr=private.encode())
@@ -51,151 +43,135 @@ class ExportSiteTests(unittest.TestCase):
         self.assertNotIn(private, stdout.getvalue() + stderr.getvalue() + str(caught.exception))
         self.assertEqual(command.call_args.kwargs["stderr"], subprocess.PIPE)
 
-    def export(self, files):
+    def workspace(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
-        output = Path(temporary.name) / "site"
-        reads = []
+        root = Path(temporary.name)
+        (root / "data").mkdir()
+        for name in site.PUBLIC_CODE:
+            path = root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"safe")
+        (root / "_build.json").write_text(json.dumps({"source_repository": site.PUBLISH_REPOSITORY}))
+        (root / "data/index.json").write_text('[{"id":"v3"}]')
+        (root / "data/v3.json").write_text('{"id":"historical-id","groups":[{"mpn":"TEST","note":"§7 清单已下单"}]}')
+        return root
 
-        def read(repository, sha, path):
-            reads.append((sha, path))
-            return files[path]
+    def test_prepare_direct_workspace_without_parent_or_git_and_never_reads_batches(self):
+        root = self.workspace()
+        (root / "data/batches.json").write_bytes(b"not json private")
+        with patch.object(site, "git", side_effect=AssertionError("unexpected Git read")):
+            files = site.prepare(root)
+        board = json.loads(files["data/v3.json"])
+        self.assertEqual(board["id"], "historical-id")
+        self.assertEqual(board["groups"], [{"mpn": "TEST", "note": ""}])
+        self.assertEqual((root / "data/batches.json").read_bytes(), b"not json private")
+        self.assertNotIn("data/batches.json", files)
 
-        with patch.object(site, "read_blob", side_effect=read), patch.object(
-            site, "resolve_commit", return_value="a" * 40
-        ):
-            site.export_site(Path("source"), "main", output)
-        return output, reads
-
-    def files(self, board="v4.5-pwr"):
-        return {
-            "web/assembly/index.html": b"<html>committed page</html>",
-            "web/assembly/data/index.json": json.dumps([{"id": board}]).encode(),
-            "web/assembly/data/" + board + ".json": b'{"id":"historical-id"}',
-        }
-
-    def test_exports_only_indexed_files_and_preserves_historical_document_id(self):
-        files = self.files()
-        files["web/assembly/data/batches.json"] = b'{"private":true}'
-        files["web/assembly/internal/secrets.json"] = b"{}"
-        output, reads = self.export(files)
-        self.assertEqual(
-            sorted(str(path.relative_to(output)) for path in output.rglob("*") if path.is_file()),
-            [".nojekyll", "CNAME", "_build.json", "data/index.json", "data/v4.5-pwr.json", "index.html"],
-        )
-        self.assertEqual((output / "index.html").read_bytes(), files["web/assembly/index.html"])
-        self.assertEqual(json.loads((output / "_build.json").read_text())["source_sha"], "a" * 40)
-        self.assertTrue(all(sha == "a" * 40 for sha, _ in reads))
-        self.assertFalse(any("batches" in path or "internal" in path for _, path in reads))
-
-    def test_rejects_unsafe_and_private_ids_before_reading_board(self):
-        for board in ["../internal/secret", "batches", "internal", "x/y", "index", "x%2fy", "-bad", ""]:
-            with self.subTest(board=board), self.assertRaises(ValueError):
-                self.export(self.files(board))
-
-    def test_validates_every_json_before_creating_output(self):
-        files = self.files()
-        files["web/assembly/data/v4.5-pwr.json"] = b"not json"
+    def test_prepare_validates_all_before_any_write(self):
+        root = self.workspace()
+        original = (root / "data/v3.json").read_bytes()
+        (root / "data/index.json").write_text('[{"id":"v3"},{"id":"v4"}]')
+        (root / "data/v4.json").write_bytes(b"invalid")
         with self.assertRaises(ValueError):
-            self.export(files)
+            site.prepare(root)
+        self.assertEqual((root / "data/v3.json").read_bytes(), original)
 
-    def test_rejects_invalid_index_shapes_and_duplicates(self):
-        for index in [{}, [], ["v3"], [{"id": "v4.5-pwr"}, {"id": "v4.5-pwr"}], [{"id": 3}]]:
-            files = self.files()
-            files["web/assembly/data/index.json"] = json.dumps(index).encode()
+    def test_invalid_indexes(self):
+        for index in [[], {}, ["v3"], [{"id":"batches"}], [{"id":"../x"}], [{"id":"v3"},{"id":"v3"}]]:
             with self.subTest(index=index), self.assertRaises(ValueError):
-                self.export(files)
+                site.validate_files(lambda name: json.dumps(index).encode())
 
-    def test_never_reuses_existing_output_directory(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            output = Path(temporary)
-            (output / "private.json").write_text("private")
-            with self.assertRaises(FileExistsError):
-                site.export_site(Path("source"), "main", output)
-            self.assertEqual((output / "private.json").read_text(), "private")
+    def test_snapshot_raw_private_note_fails_before_output_exists(self):
+        root = self.workspace()
+        output = root / "output"
+        with patch.object(site, "resolve_commit", return_value="a" * 40), patch.object(
+            site, "read_blob", side_effect=lambda repo, sha, name: (root / name).read_bytes()
+        ), self.assertRaises(ValueError):
+            site.export_site(root, "HEAD", output)
+        self.assertFalse(output.exists())
 
-    def test_privacy_scan_covers_committed_readme_without_exposing_value(self):
-        private = b"/Users/" + b"fictional-builder/projects/site"
-        with patch.object(site, "git", side_effect=[b"README.md\0scripts/export_site.py\0", b"intro\n" + private, b"safe"]):
-            with self.assertRaises(ValueError) as caught:
-                site.check_public_privacy(Path("target"), "main")
-        self.assertIn("README.md:2: user-home-path", str(caught.exception))
-        self.assertNotIn(private.decode(), str(caught.exception))
+    def test_standalone_snapshot_uses_own_ref_and_whitelist(self):
+        root = self.workspace()
+        site.prepare(root)
+        (root / "data/batches.json").write_bytes(b"private")
+        output = root / "output"
+        with patch.object(site, "resolve_commit", return_value="a" * 40), patch.object(
+            site, "read_blob", side_effect=lambda repo, sha, name: (root / name).read_bytes()
+        ), patch.object(site, "check_public_privacy"):
+            files = site.export_site(root, "HEAD", output)
+        self.assertEqual(set(files), {"index.html", "data/index.json", "data/v3.json", "CNAME", ".nojekyll", "_build.json"})
+        self.assertEqual(json.loads(files["_build.json"]), {"source_repository": site.PUBLISH_REPOSITORY, "source_sha": "a" * 40})
+        self.assertFalse((output / "data/batches.json").exists())
+        with self.assertRaises(FileExistsError):
+            site.export_site(root, "HEAD", output)
 
-    def test_privacy_scan_checks_proposed_files_and_windows_json_paths(self):
-        values = [b"/home/" + b"fictional-builder/site", rb"C:\Users" + rb"\fictional-builder\site",
-                  rb"C:\\Users" + rb"\\fictional-builder\\site"]
-        for value in values:
-            with self.subTest(value=value), patch.object(site, "git", return_value=b"README.md\0"):
-                with self.assertRaises(ValueError) as caught:
-                    site.check_public_privacy(Path("target"), "HEAD", {"README.md": value})
-                self.assertIn("README.md:1: user-home-path", str(caught.exception))
-                self.assertNotIn("fictional-builder", str(caught.exception))
+    def test_privacy_scans_documentation_and_windows_paths_without_exposing_value(self):
+        for value in [b"/Users/" + b"fictional-builder/site", b"/home/" + b"fictional-builder/site",
+                      rb"C:\Users" + rb"\fictional-builder\site"]:
+            with self.subTest(value=value), self.assertRaises(ValueError) as caught:
+                site.check_contents({"README.md": value})
+            self.assertIn("README.md:1: user-home-path", str(caught.exception))
+            self.assertNotIn("fictional-builder", str(caught.exception))
 
-    def test_privacy_scan_accepts_relative_commands_and_author_attribution(self):
-        files = {"README.md": b"python3 scripts/export_site.py --source ../Pilot-Kit-Box-ESP32-P4\nCopyright Example Author"}
-        with patch.object(site, "git", return_value=b"README.md\0"):
-            site.check_public_privacy(Path("target"), "HEAD", files)
+    def test_staged_tree_reads_actual_index_and_rejects_private_file(self):
+        root = self.workspace()
+        files = site.prepare(root)
+        files["data/batches.json"] = b"private"
+        def fake(repo, *args, **kwargs):
+            if args == ("ls-files", "-z"):
+                return "\0".join(files).encode()
+            if args[0] == "ls-files":
+                return b"100644 fake 0\tname"
+            return files[args[1][1:]]
+        with patch.object(site, "git", side_effect=fake), self.assertRaises(ValueError):
+            site.staged_files(root)
+        del files["data/batches.json"]
+        files["README.md"] = b"/home/" + b"fictional-builder/private"
+        with patch.object(site, "git", side_effect=fake), self.assertRaises(ValueError):
+            site.staged_files(root)
 
-    def test_cli_accepts_relative_source(self):
-        files = {"_build.json": json.dumps({"source_sha": "a" * 40}).encode()}
-        with patch("sys.argv", ["export_site.py", "--source", "../Pilot-Kit-Box-ESP32-P4"]), patch.object(
-            site, "public_files", return_value=files
-        ) as read, patch.object(site, "write_files"), patch("builtins.print"):
-            site.main()
-        read.assert_called_once_with(Path("../Pilot-Kit-Box-ESP32-P4"), "HEAD")
-
-    def test_snapshot_privacy_failure_precedes_output_creation(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            output = Path(temporary) / "site"
-            with patch.object(site, "check_public_privacy", side_effect=ValueError("README.md:1: user-home-path")) as check:
-                with self.assertRaises(ValueError):
-                    site.export_site(Path("source"), "main", output, snapshot=True)
-            check.assert_called_once_with(Path("source"), "main")
-            self.assertFalse(output.exists())
-
-    def test_publish_privacy_failure_precedes_any_git_write(self):
-        with patch.object(site, "check_publish_target"), patch.object(site, "git") as command, patch.object(
-            site, "check_public_privacy", side_effect=ValueError("README.md:1: user-home-path")
-        ):
-            with self.assertRaises(ValueError):
-                site.publish(Path("target"), {"index.html": b"page"}, "a" * 40)
-            command.assert_not_called()
-
-    def test_publish_rejects_wrong_origin_and_existing_staging(self):
+    def test_publish_rejects_wrong_origin_and_existing_staging_before_writes(self):
         for responses in [[b"git@github.com:naizhao/other.git"],
-                          [b"git@github.com:naizhao/Pilot-Kit-Box-PCB-SMT-Helper.git", b"main", b"unrelated.txt"]]:
-            with patch.object(site, "git", side_effect=responses) as command:
-                with self.assertRaises(ValueError):
-                    site.publish(Path("target"), {"index.html": b"page"}, "a" * 40)
-                self.assertFalse(any(call.args[1] in {"add", "commit", "push"} for call in command.call_args_list))
+                          [b"git@github.com:naizhao/Pilot-Kit-Box-PCB-SMT-Helper.git", b"main", b"README.md"]]:
+            with patch.object(site, "git", side_effect=responses) as command, self.assertRaises(ValueError):
+                site.publish(Path("target"))
+            self.assertFalse(any(call.args[1] in {"add", "commit", "push"} for call in command.call_args_list))
 
-    def test_publish_unchanged_snapshot_skips_commit_and_push(self):
-        with patch.object(site, "check_publish_target"), patch.object(site, "check_public_privacy"), patch.object(site, "git", return_value=b"") as command:
-            site.publish(Path("target"), {"index.html": b"page"}, "a" * 40)
-            self.assertEqual([call.args[1] for call in command.call_args_list], ["add", "diff"])
+    def test_publish_unchanged_pushes_again_and_changed_uses_project_identity(self):
+        for changed in [False, True]:
+            with patch.object(site, "check_publish_target"), patch.object(site, "prepare", return_value={"index.html": b"page"}), patch.object(
+                site, "check_public_privacy"
+            ), patch.object(site, "staged_files"), patch.object(site, "git", side_effect=lambda repo, *args, **kw: b"index.html" if args[0] == "diff" and changed else b"") as command:
+                site.publish(Path("target"))
+            calls = command.call_args_list
+            self.assertIn(("add", "--", "index.html"), [call.args[1:] for call in calls])
+            self.assertEqual(calls[-1].args[1:], ("push", "origin", "HEAD:refs/heads/main"))
+            commits = [call for call in calls if call.args[1] == "commit"]
+            self.assertEqual(len(commits), int(changed))
+            if changed:
+                for role in ["AUTHOR", "COMMITTER"]:
+                    self.assertEqual(commits[0].kwargs["env"][f"GIT_{role}_NAME"], "Pilot Kit")
+                    self.assertEqual(commits[0].kwargs["env"][f"GIT_{role}_EMAIL"], "1012276+naizhao@users.noreply.github.com")
 
-    def test_publish_commit_overrides_inherited_personal_identity(self):
-        with patch.dict(site.os.environ, {"GIT_AUTHOR_NAME": "Private", "GIT_AUTHOR_EMAIL": "private@example.invalid",
-                                        "GIT_COMMITTER_NAME": "Private", "GIT_COMMITTER_EMAIL": "private@example.invalid"}), patch.object(
-            site, "check_publish_target"
-        ), patch.object(site, "check_public_privacy"), patch.object(
-            site, "git", side_effect=[b"", b"index.html", b"", b""]
-        ) as command:
-            site.publish(Path("target"), {"index.html": b"page"}, "a" * 40)
-        commit = [call for call in command.call_args_list if call.args[1] == "commit"][0]
-        identity = commit.kwargs["env"]
-        for role in ["AUTHOR", "COMMITTER"]:
-            self.assertEqual(identity[f"GIT_{role}_NAME"], "Pilot Kit")
-            self.assertEqual(identity[f"GIT_{role}_EMAIL"], "1012276+naizhao@users.noreply.github.com")
+    def test_committed_tree_checks_documentation_and_raw_notes(self):
+        cases = [("README.md", b"/home/" + b"fictional-builder/private"),
+                 ("data/v3.json", '{"groups":[{"note":"§7 清单已下单"}]}'.encode()),
+                 ("data/batches.json", b"{}"), ("internal/notes.txt", b"private")]
+        for name, raw in cases:
+            with self.subTest(name=name), patch.object(site, "git", side_effect=[(name + "\0").encode(), raw]), self.assertRaises(ValueError):
+                site.check_public_privacy(Path("repo"), "HEAD")
 
-    def test_publish_stages_only_explicit_files_and_pushes_main_without_force(self):
-        with patch.object(site, "check_publish_target"), patch.object(site, "check_public_privacy"), patch.object(
-            site, "git", side_effect=[b"", b"index.html", b"", b""]
-        ) as command:
-            site.publish(Path("target"), {"index.html": b"page", "data/index.json": b"[]"}, "a" * 40)
-            self.assertEqual(command.call_args_list[0].args[1:], ("add", "--", "data/index.json", "index.html"))
-            self.assertEqual(command.call_args_list[-1].args[1:], ("push", "origin", "HEAD:refs/heads/main"))
+    def test_publish_failed_actual_index_check_prevents_commit_and_push(self):
+        with patch.object(site, "check_publish_target"), patch.object(site, "prepare", return_value={"index.html": b"page"}), patch.object(
+            site, "check_public_privacy"
+        ), patch.object(site, "staged_files", side_effect=ValueError("private index blob")), patch.object(site, "git", return_value=b"") as command, self.assertRaises(ValueError):
+            site.publish(Path("target"))
+        self.assertFalse(any(call.args[1] in {"commit", "push"} for call in command.call_args_list))
+
+    def test_batches_is_ignored(self):
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual(subprocess.check_output(["git", "-C", str(root), "check-ignore", "data/batches.json"]).decode().strip(), "data/batches.json")
 
 
 if __name__ == "__main__":

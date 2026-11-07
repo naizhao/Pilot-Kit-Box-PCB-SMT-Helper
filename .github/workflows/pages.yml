@@ -29,7 +29,7 @@ jobs:
       - name: Package committed public snapshot
         run: >-
           python3 scripts/export_site.py --snapshot
-          --source "$GITHUB_WORKSPACE" --ref "$GITHUB_SHA"
+          --ref "$GITHUB_SHA"
           --output "$RUNNER_TEMP/smt-site"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4

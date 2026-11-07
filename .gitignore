@@ -1,0 +1,4 @@
+data/batches.json
+__pycache__/
+*.py[cod]
+IMPLEMENTATION_PLAN.md

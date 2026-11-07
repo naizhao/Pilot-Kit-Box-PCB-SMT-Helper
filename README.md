@@ -47,7 +47,7 @@ python3 -m http.server 8000 --bind 127.0.0.1
 
 已贴、跳过、备料勾选和计时保存在本机浏览器的 `localStorage` 中，按板卡版本区分。关闭后重新访问相同站点可以继续；更换浏览器、设备、访问地址或清除站点数据后，不会自动带入原进度。页面不提供账号或云端同步。
 
-可选的 `data/batches.json` 用于显示个人采购批次；缺少它时其余功能照常使用。个人批次数据仅限本地，不应纳入版本控制或站点发布；本地使用时应配置相应的 Git 忽略规则。
+可选的 `data/batches.json` 用于显示个人采购批次；缺少它时其余功能照常使用。个人批次数据仅限本地，不应纳入版本控制或站点发布；仓库已配置相应的 Git 忽略规则。
 
 ## 数据结构与维护
 
@@ -60,6 +60,16 @@ python3 -m http.server 8000 --bind 127.0.0.1
 板卡数据由 [Pilot Kit Box 硬件工程](https://github.com/naizhao/Pilot-Kit-Box-ESP32-P4) 中的生成工具从对应 PCB 和 BOM 整理。PCB 几何变化后应重新生成对应数据，不能用旧渲染图片代替焊盘坐标；BOM 或选贴规则变化后也应同步更新。页脚显示数据中的源 PCB 日期，便于核对。
 
 维护页面与数据时，请检查位号定位、正反面、极性、同料分组、数量及选贴范围。公开内容仅保留装配所需的技术信息，不包含个人采购记录、库存信息或内部工程资料。
+
+页面、数据和发布脚本在本仓库根目录直接维护。硬件工程生成对应 JSON 后，将索引和版本数据更新到 `data/`，再执行：
+
+```sh
+python3 scripts/export_site.py --prepare
+python3 -m unittest discover -s tests -v
+python3 scripts/export_site.py --publish
+```
+
+`--prepare` 先校验全部公开数据，再定向去除 note 中的个人采购记录。`--publish` 校验目标仓库与空暂存区，精确提交公开文件并推送 main；只应在准备正式发布时执行。Pages 从本仓库已提交内容打包，产物 `_build.json` 记录本仓库提交 SHA。切换域名或访问地址会改变 localStorage 的存储空间，原地址的贴片进度不会自动迁移。
 
 ## 许可证
 
