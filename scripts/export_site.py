@@ -66,7 +66,7 @@ def public_note(note):
     return note.strip(" ；;｜") if note != original else note
 
 
-PUBLIC_CODE = {"index.html", "README.md", "LICENSE", "CNAME", ".nojekyll",
+PUBLIC_CODE = {"index.html", "i18n-en.js", "tests/test_i18n_data.py", "README.md", "LICENSE", "CNAME", ".nojekyll",
                ".gitignore", "data/.gitignore", "_build.json",
                "scripts/export_site.py", "tests/test_export_site.py", ".github/workflows/pages.yml"}
 
@@ -147,6 +147,7 @@ def public_files(repository, ref):
     if json.loads(read("_build.json")) != {"source_repository": PUBLISH_REPOSITORY}:
         raise ValueError("提交元数据必须仅标记本仓库来源")
     files["index.html"] = read("index.html")
+    files["i18n-en.js"] = read("i18n-en.js")
     files["CNAME"] = read("CNAME")
     files[".nojekyll"] = read(".nojekyll")
     files["_build.json"] = (json.dumps({"source_repository": PUBLISH_REPOSITORY,

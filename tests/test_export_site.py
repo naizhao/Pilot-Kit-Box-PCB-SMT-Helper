@@ -52,6 +52,7 @@ class ExportSiteTests(unittest.TestCase):
             path = root / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(b"safe")
+        (root / "i18n-en.js").write_text("window.PK_ASSEMBLY_EN_DATA = {};")
         (root / "_build.json").write_text(json.dumps({"source_repository": site.PUBLISH_REPOSITORY}))
         (root / "data/index.json").write_text('[{"id":"v3"}]')
         (root / "data/v3.json").write_text('{"id":"historical-id","groups":[{"mpn":"TEST","note":"§7 清单已下单"}]}')
@@ -67,6 +68,14 @@ class ExportSiteTests(unittest.TestCase):
         self.assertEqual(board["groups"], [{"mpn": "TEST", "note": ""}])
         self.assertEqual((root / "data/batches.json").read_bytes(), b"not json private")
         self.assertNotIn("data/batches.json", files)
+
+    def test_missing_language_asset_fails_before_prepare_writes(self):
+        root = self.workspace()
+        (root / "i18n-en.js").unlink()
+        original = (root / "data/v3.json").read_bytes()
+        with self.assertRaises(FileNotFoundError):
+            site.prepare(root)
+        self.assertEqual((root / "data/v3.json").read_bytes(), original)
 
     def test_prepare_validates_all_before_any_write(self):
         root = self.workspace()
@@ -100,7 +109,7 @@ class ExportSiteTests(unittest.TestCase):
             site, "read_blob", side_effect=lambda repo, sha, name: (root / name).read_bytes()
         ), patch.object(site, "check_public_privacy"):
             files = site.export_site(root, "HEAD", output)
-        self.assertEqual(set(files), {"index.html", "data/index.json", "data/v3.json", "CNAME", ".nojekyll", "_build.json"})
+        self.assertEqual(set(files), {"index.html", "i18n-en.js", "data/index.json", "data/v3.json", "CNAME", ".nojekyll", "_build.json"})
         self.assertEqual(json.loads(files["_build.json"]), {"source_repository": site.PUBLISH_REPOSITORY, "source_sha": "a" * 40})
         self.assertFalse((output / "data/batches.json").exists())
         with self.assertRaises(FileExistsError):
