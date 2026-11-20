@@ -535,7 +535,7 @@ footer .sp{flex:1}
 
 <div id="printSheet"></div>
 
-<script src="i18n-en.js"></script>
+<script src="i18n-en.js?v=f78c5d0e6a85"></script>
 <script>
 "use strict";
 
@@ -735,6 +735,19 @@ function h(tag, props, ...kids) {
 }
 function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
 
+const dataVersions = fetch("data/versions.json", { cache: "no-store" }).then((response) => {
+  if (!response.ok) throw new Error("Cannot load data versions");
+  return response.json();
+});
+
+async function fetchData(path) {
+  const hash = (await dataVersions)[path];
+  if (typeof hash !== "string" || !/^[0-9a-f]{64}$/.test(hash)) {
+    throw new Error("No data version for " + path);
+  }
+  return fetch(path + "?v=" + hash, { cache: "no-cache" });
+}
+
 // ── 版本选择 ────────────────────────────────────────────────
 function renderCatalog() {
   const box = $("cards");
@@ -760,14 +773,14 @@ function renderCatalog() {
         + (spent ? ui(` · 已花 ${fmtDur(spent)}`, ` · Time ${fmtDur(spent)}`) : "") + ui("，继续", " · Resume") }) : null));
   }
 }
-fetch("data/index.json").then((r) => { if (!r.ok) throw new Error("index"); return r.json(); })
+fetchData("data/index.json").then((r) => { if (!r.ok) throw new Error("index"); return r.json(); })
   .then((list) => { catalog = list; if (language === "en") setLanguage("en"); else renderCatalog(); })
   .catch(() => { catalogFailed = true; renderCatalog(); });
 
 /* 采购批次：一个工作表 = 一批料。这是个人数据，单独一个 gitignore 的文件，
    读不到就不显示批次，其余功能照常——所以这里失败要静默降级，不能拦住开工。 */
 let BATCH = null;
-fetch("data/batches.json")
+fetchData("data/batches.json")
   .then((r) => (r.ok ? r.json() : null))
   .then((b) => { BATCH = b; if (DOC) render(); })
   .catch(() => { BATCH = null; });
@@ -784,7 +797,7 @@ function batchOf(group) {
 const slotOf = (g) => String(DOC.groups.indexOf(g) + 1).padStart(2, "0");
 
 function load(id) {
-  fetch(`data/${id}.json`).then((r) => r.json()).then((doc) => {
+  fetchData(`data/${id}.json`).then((r) => r.json()).then((doc) => {
     DOC = doc;
     if (language === "en" && !languageDataAvailable(doc)) setLanguage("en");
     FLAT = [];

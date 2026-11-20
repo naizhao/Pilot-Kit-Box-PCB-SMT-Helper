@@ -1,5 +1,12 @@
 [
  {
+  "id": "v5.3",
+  "title": "V5.3",
+  "subtitle": "适用于 2026-11-12 归档 PCB（9b2b37c9）与当日 BOM；双独立 1090/978 IFA，五颗 TQP3M9008，九颗 XA17-G4K。USB 默认 P4，J12 为背面 BOOT 裸铜触点，PD 请求 9V，RT1 在 B 面。",
+  "total": 315,
+  "groups": 107
+ },
+ {
   "id": "v5.2",
   "title": "V5.2",
   "subtitle": "双独立 1090/978 IFA；GNSS 竖排；外置口 GRF4042 首批贴 1.1k 偏置（EN 默认关闭）；PD 请求 9V；J7/L25/ZS2 由可切铜桥直通；R108/R112=1.1kΩ 1% 估值，增益待实测；r7：正面丝印更新，Gerber 选 OSP，SMT 器件/坐标与 r2 相同；RT1/BT1/SW3/D8/D9 手焊；J11 是 2x10 裸焊盘",

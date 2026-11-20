@@ -69,6 +69,34 @@ class ExportSiteTests(unittest.TestCase):
         self.assertEqual((root / "data/batches.json").read_bytes(), b"not json private")
         self.assertNotIn("data/batches.json", files)
 
+    def test_versions_follow_changed_bytes_and_public_snapshot_excludes_private_batch(self):
+        root = self.workspace()
+        data = root / "data"
+        (data / "batches.json").write_bytes(b"private")
+        site.refresh_versions(data)
+        before = json.loads((root / site.VERSION_FILE).read_bytes())
+        (data / "v3.json").write_bytes(b'{"groups":[]}')
+        site.refresh_versions(data)
+        after = json.loads((root / site.VERSION_FILE).read_bytes())
+        self.assertEqual({name for name in before if before[name] != after[name]}, {"data/v3.json"})
+        self.assertEqual(after["data/v3.json"], site.hashlib.sha256(b'{"groups":[]}').hexdigest())
+        public = json.loads(site.prepare(root)[site.VERSION_FILE])
+        self.assertEqual(set(public), {"data/v3.json", "data/index.json"})
+        self.assertEqual(public["data/v3.json"], after["data/v3.json"])
+
+    def test_refresh_versions_writes_inside_custom_output_only(self):
+        root = self.workspace()
+        custom = root / "candidate"
+        custom.mkdir()
+        (custom / "index.json").write_text('[{"id":"v5.3"}]')
+        (custom / "v5.3.json").write_text("{}")
+        sentinel = root / site.VERSION_FILE
+        sentinel.write_bytes(b"existing site")
+        site.refresh_versions(custom)
+        self.assertEqual(sentinel.read_bytes(), b"existing site")
+        self.assertEqual(set(json.loads((custom / "versions.json").read_bytes())),
+                         {"data/index.json", "data/v5.3.json"})
+
     def test_missing_language_asset_fails_before_prepare_writes(self):
         root = self.workspace()
         (root / "i18n-en.js").unlink()
@@ -109,7 +137,7 @@ class ExportSiteTests(unittest.TestCase):
             site, "read_blob", side_effect=lambda repo, sha, name: (root / name).read_bytes()
         ), patch.object(site, "check_public_privacy"):
             files = site.export_site(root, "HEAD", output)
-        self.assertEqual(set(files), {"index.html", "i18n-en.js", "data/index.json", "data/v3.json", "CNAME", ".nojekyll", "_build.json"})
+        self.assertEqual(set(files), {"index.html", "i18n-en.js", "data/versions.json", "data/index.json", "data/v3.json", "CNAME", ".nojekyll", "_build.json"})
         self.assertEqual(json.loads(files["_build.json"]), {"source_repository": site.PUBLISH_REPOSITORY, "source_sha": "a" * 40})
         self.assertFalse((output / "data/batches.json").exists())
         with self.assertRaises(FileExistsError):

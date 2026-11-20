@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """在本仓库准备公开贴片数据、发布或打包已提交站点。"""
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -71,6 +72,27 @@ PUBLIC_CODE = {"index.html", "i18n-en.js", "tests/test_i18n_data.py", "README.md
                "scripts/export_site.py", "tests/test_export_site.py", ".github/workflows/pages.yml"}
 
 
+VERSION_FILE = "data/versions.json"
+
+
+def content_versions(files):
+    versions = {name: hashlib.sha256(raw).hexdigest() for name, raw in files.items()}
+    return (json.dumps(versions, sort_keys=True, indent=2) + "\n").encode()
+
+
+def refresh_versions(directory):
+    files = {"data/index.json": (directory / "index.json").read_bytes()}
+    for entry in json.loads(files["data/index.json"]):
+        board = entry["id"]
+        if not re.fullmatch(r"v[0-9]+(?:\.[0-9]+)*(?:-(?:pwr|nopwr))?", board):
+            raise ValueError("无效板卡版本")
+        files[f"data/{board}.json"] = (directory / f"{board}.json").read_bytes()
+    batch = directory / "batches.json"
+    if batch.is_file():
+        files["data/batches.json"] = batch.read_bytes()
+    write_files(directory, {"versions.json": content_versions(files)})
+
+
 def validate_files(read, prepare=False):
     index_raw = read("data/index.json")
     index = json.loads(index_raw)
@@ -99,6 +121,7 @@ def validate_files(read, prepare=False):
                     group["note"] = cleaned
                     changed = True
         files[name] = json.dumps(document, ensure_ascii=False, separators=(",", ":")).encode() if changed else raw
+    files[VERSION_FILE] = content_versions(files)
     return files
 
 
@@ -231,9 +254,13 @@ def main():
     mode.add_argument("--prepare", action="store_true")
     mode.add_argument("--publish", action="store_true")
     mode.add_argument("--snapshot", action="store_true")
+    mode.add_argument("--refresh-versions", action="store_true", help="按本机数据更新缓存版本清单")
     parser.add_argument("--ref", default="HEAD")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    if args.refresh_versions:
+        refresh_versions(ROOT / "data")
+        return
     if args.snapshot:
         if args.output is None:
             parser.error("--snapshot 需要 --output")
