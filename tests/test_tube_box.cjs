@@ -91,8 +91,8 @@ test("tube box records physical parts, counts by keyboard and prints only essent
   await page.locator("#tubeSource").getByText(/建议按 V5\.3/).waitFor();
   assert.equal(await box.locator("[data-tube-position]").count(), 100);
   assert.match(await page.locator("#tubeGridStatus").textContent(), /已登记 0 格/);
-  assert.match(await page.locator("#tubeGridStatus").textContent(), /建议 71 格/);
-  assert.match(await page.locator("#tubeGridStatus").textContent(), /备用 29 格/);
+  assert.match(await page.locator("#tubeGridStatus").textContent(), /建议 83 格/);
+  assert.match(await page.locator("#tubeGridStatus").textContent(), /备用 17 格/);
   assert.equal(await page.locator("#tubeQuantity").inputValue(), "");
   assert.equal(await page.locator("#tubeQuantity").getAttribute("placeholder"), "待盘点");
   assert.match(await page.locator("#tubeSlotDetails").textContent(), /建议/);
@@ -101,11 +101,12 @@ test("tube box records physical parts, counts by keyboard and prints only essent
   // 空格按最新 V5.3 BOM 预填建议：先 C/R/L，再按封装，同一封装内按容量，和摆盘纸同序。
   assert.match(await cell("A1").getAttribute("aria-label"), /建议.*2\.7pF.*0402/);
   const suggestions = await page.locator("#tubeGrid [data-tube-position]").evaluateAll((nodes) =>
-    nodes.filter((node) => node.classList.contains("suggested")).map((node) => {
+    // 钉在固定管位的补料不参加「按封装/容量」的连续顺序检查
+    nodes.filter((node) => node.classList.contains("suggested") && !node.classList.contains("pinned")).map((node) => {
       const [, spec, size] = node.getAttribute("aria-label").split(" · ");
       return { spec: spec.replace(/^建议 /, ""), size };
     }));
-  assert.equal(suggestions.length, 71);
+  assert.equal(suggestions.length, 80);
   // 片式小件也进管盒：ESD(0402)、LED(0805)、NTC(0603)，TPESD 在 BOM 里两行只占一格。
   const suggestedPositions = await page.locator("#tubeGrid [data-tube-position]").evaluateAll((nodes) =>
     nodes.filter((node) => node.classList.contains("suggested")).map((node) => node.getAttribute("aria-label")));
@@ -116,6 +117,14 @@ test("tube box records physical parts, counts by keyboard and prints only essent
   assert.match(chip("LED 红"), /LED 红[\s\S]*· 0805 ·/);
   assert.match(chip("LED 黄"), /LED 黄[\s\S]*· 0805 ·/);
   assert.match(chip("NCP18XH103F03RB"), /NCP18XH103F03RB[\s\S]*· 0603 ·/);
+  // SOT/SOD 小封装也进盒：1N4148WS 归二极管，SOT 芯片归 U。
+  assert.match(chip("1N4148WS"), /1N4148WS[\s\S]*· D_SOD-323 ·/);
+  assert.match(chip("ME6211C33M5"), /ME6211C33M5[\s\S]*· SOT-23-5 ·/);
+  assert.match(chip("TQP3M9008"), /TQP3M9008[\s\S]*· SOT-89-3 ·/);
+  // 用户已经放好的 3 管固定在 H2/H3/H4。
+  assert.match(await cell("H2").getAttribute("aria-label"), /1uF 16V X5R ±10%[\s\S]*· 0603 ·/);
+  assert.match(await cell("H3").getAttribute("aria-label"), /22uF 10V X5R[\s\S]*· 1206 ·/);
+  assert.match(await cell("H4").getAttribute("aria-label"), /10uF 16V X5R ±10%[\s\S]*· 0805 ·/);
   assert.ok(suggestedPositions.findIndex((label) => /TPESD/.test(label)) > suggestedPositions.findIndex((label) => /6\.8uH/.test(label)),
     "misc chip parts should follow the passives");
   const kindOf = (spec) => /^[0-9.]+[pnuµmkKMG]?F/i.test(spec) ? "C" : /^[0-9.]+[mkKMG]?Ω/.test(spec) ? "R" : /^[0-9.]+[pnuµmkKMG]?H/i.test(spec) ? "L" : "";
@@ -322,11 +331,11 @@ test("tube box records physical parts, counts by keyboard and prints only essent
   assert.ok(Math.abs(cellMm - 13) < 0.3, `cell should lay out at 13 mm, got ${cellMm}`);
   const printed = (position) => page.locator(`#tubePreview .tubePrintCell[data-position="${position}"]`);
   assert.equal(await printed("A1").locator(".tubePrintValue").textContent(), "100nF");
-  assert.equal(await printed("A1").locator(".tubePrintMeta").textContent(), "C · 0402");
+  assert.equal(await printed("A1").locator(".tubePrintMeta").textContent(), "C·0402");
   assert.equal(await printed("C2").locator(".tubePrintValue").textContent(), "10kΩ");
-  assert.equal(await printed("C2").locator(".tubePrintMeta").textContent(), "R · 0603");
+  assert.equal(await printed("C2").locator(".tubePrintMeta").textContent(), "R·0603");
   assert.equal(await printed("C1").locator(".tubePrintValue").textContent(), "6.2nH");
-  assert.equal(await printed("C1").locator(".tubePrintMeta").textContent(), "L · 0402");
+  assert.equal(await printed("C1").locator(".tubePrintMeta").textContent(), "L·0402");
   // 空格按默认建议摆位印出该放的料，仍然只印类型/封装/容量。
   assert.ok(await printed("A3").locator(".tubePrintValue").count() === 1, "spare suggested slot should print its value");
   assert.doesNotMatch(await printed("A3").textContent(), /颗|LCSC|建议|未盘点|备用/);
@@ -339,15 +348,19 @@ test("tube box records physical parts, counts by keyboard and prints only essent
     return hit ? hit.dataset.tubePosition : "";
   }, needle);
   for (const [needle, value, meta] of [
-    ["TPESD8L3.3", "0.3pF", "D · 0402"],
-    ["LED 红", "LED 红", "D · 0805"],
-    ["LED 黄", "LED 黄", "D · 0805"],
-    ["NCP18XH103F03RB", "10k NTC", "RT · 0603"],
+    ["TPESD8L3.3", "0.3pF", "D·0402"],
+    ["LED 红", "LED 红", "D·0805"],
+    ["LED 黄", "LED 黄", "D·0805"],
+    ["NCP18XH103F03RB", "10k NTC", "RT·0603"],
   ]) {
     const position = await positionOf(needle);
     assert.ok(position, needle + " should still be suggested");
     assert.equal(await printed(position).locator(".tubePrintValue").textContent(), value);
     assert.equal(await printed(position).locator(".tubePrintMeta").textContent(), meta);
+  }
+  // 同容量同封装的两管（1uF 16V / 25V 等）在纸上补电压区分。
+  for (const [position, value] of [["H2", "1uF 16V"], ["H3", "22uF 10V"], ["H4", "10uF 16V"]]) {
+    assert.equal(await printed(position).locator(".tubePrintValue").textContent(), value);
   }
   assert.doesNotMatch(await page.locator("#tubePreview").textContent(), /颗|LCSC|建议|未盘点|备用|实盘/);
 
@@ -417,7 +430,7 @@ test("tube box records physical parts, counts by keyboard and prints only essent
   assert.equal(await position(), "A1");
   assert.equal(await page.locator("#tubeSpec").inputValue(), "2.7pF 50V C0G ±0.25pF");
   assert.match(await page.locator("#tubeGridStatus").textContent(), /已登记 0 格/);
-  assert.match(await page.locator("#tubeGridStatus").textContent(), /建议 71 格/);
+  assert.match(await page.locator("#tubeGridStatus").textContent(), /建议 83 格/);
 
   // 建议 BOM 读不到时退回手动登记，不影响管盒本身。
   const requests = [];

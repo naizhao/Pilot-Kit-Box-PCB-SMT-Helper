@@ -10,5 +10,26 @@
     "spec": "18nH",
     "size": "0402",
     "note": "仅 V4.12 使用；不在 V5.3 BOM 里，但仍占一个管位"
+  },
+  {
+    "kind": "电容",
+    "spec": "1uF 16V X5R ±10%",
+    "size": "0603",
+    "position": "H2",
+    "note": "可贴 C3/C4/C6/C18/C28/C29/C67/C78/C79/C80"
+  },
+  {
+    "kind": "电容",
+    "spec": "22uF 10V X5R",
+    "size": "1206",
+    "position": "H3",
+    "note": "仅 C76"
+  },
+  {
+    "kind": "电容",
+    "spec": "10uF 16V X5R ±10%",
+    "size": "0805",
+    "position": "H4",
+    "note": "C73/C74/C75（以及 C1 等 5V 位置）"
   }
 ]
