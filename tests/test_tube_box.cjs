@@ -91,15 +91,53 @@ test("tube box records physical parts, counts by keyboard and prints only essent
   await page.locator("#tubeSource").getByText(/建议按 V5\.3/).waitFor();
   assert.equal(await box.locator("[data-tube-position]").count(), 100);
   assert.match(await page.locator("#tubeGridStatus").textContent(), /已登记 0 格/);
-  assert.match(await page.locator("#tubeGridStatus").textContent(), /建议 65 格/);
-  assert.match(await page.locator("#tubeGridStatus").textContent(), /备用 35 格/);
+  assert.match(await page.locator("#tubeGridStatus").textContent(), /建议 69 格/);
+  assert.match(await page.locator("#tubeGridStatus").textContent(), /备用 31 格/);
   assert.equal(await page.locator("#tubeQuantity").inputValue(), "");
   assert.equal(await page.locator("#tubeQuantity").getAttribute("placeholder"), "待盘点");
   assert.match(await page.locator("#tubeSlotDetails").textContent(), /建议/);
   assert.equal(await page.evaluate(() => localStorage.getItem("pk-assembly-tube-box")), null);
 
-  // 空格按最新 V5.3 BOM 预填建议：C/R/L 按容量从小到大，和摆盘纸同序。
+  // 空格按最新 V5.3 BOM 预填建议：先 C/R/L，再按封装，同一封装内按容量，和摆盘纸同序。
   assert.match(await cell("A1").getAttribute("aria-label"), /建议.*2\.7pF.*0402/);
+  const suggestions = await page.locator("#tubeGrid [data-tube-position]").evaluateAll((nodes) =>
+    nodes.filter((node) => node.classList.contains("suggested")).map((node) => {
+      const [, spec, size] = node.getAttribute("aria-label").split(" · ");
+      return { spec: spec.replace(/^建议 /, ""), size };
+    }));
+  assert.equal(suggestions.length, 69);
+  // 片式小件也进管盒：ESD(0402)、LED(0805)、NTC(0603)，TPESD 在 BOM 里两行只占一格。
+  const suggestedPositions = await page.locator("#tubeGrid [data-tube-position]").evaluateAll((nodes) =>
+    nodes.filter((node) => node.classList.contains("suggested")).map((node) => node.getAttribute("aria-label")));
+  assert.equal(suggestedPositions.filter((label) => /TPESD/.test(label)).length, 1);
+  const chip = (needle) => suggestedPositions.find((label) => label.includes(needle)) || "";
+  assert.match(chip("TPESD8L3.3"), /TPESD8L3\.3[\s\S]*· 0402 ·/);
+  // LED 红、黄是两种料，各占一管
+  assert.match(chip("LED 红"), /LED 红[\s\S]*· 0805 ·/);
+  assert.match(chip("LED 黄"), /LED 黄[\s\S]*· 0805 ·/);
+  assert.match(chip("NCP18XH103F03RB"), /NCP18XH103F03RB[\s\S]*· 0603 ·/);
+  assert.ok(suggestedPositions.findIndex((label) => /TPESD/.test(label)) > suggestedPositions.findIndex((label) => /6\.8uH/.test(label)),
+    "misc chip parts should follow the passives");
+  const kindOf = (spec) => /^[0-9.]+[pnuµmkKMG]?F/i.test(spec) ? "C" : /^[0-9.]+[mkKMG]?Ω/.test(spec) ? "R" : /^[0-9.]+[pnuµmkKMG]?H/i.test(spec) ? "L" : "";
+  const valueOf = (spec) => {
+    const match = spec.match(/^([0-9.]+)\s*([pnuµmkKMG]?)\s*(?:F|Ω|H)/i);
+    if (!match) return Infinity;
+    const scale = { "": 0, p: -12, n: -9, u: -6, "µ": -6, "μ": -6, m: -3, k: 3, K: 3, M: 6, G: 6 }[match[2]];
+    return Number(`${match[1]}e${scale}`);
+  };
+  for (const kind of ["C", "R", "L"]) {
+    const rows = suggestions.filter(({ spec }) => kindOf(spec) === kind)
+      .map(({ spec, size }) => ({ package: /^\d{4}$/.test(size) ? Number(size) : 99999, value: valueOf(spec), size }));
+    assert.ok(rows.length > 0, kind + " suggestions should exist");
+    const packages = rows.map(({ package: size }) => size);
+    assert.deepEqual(packages, [...packages].sort((a, b) => a - b), kind + " should group suggestions by package");
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i].package === rows[i - 1].package) {
+        assert.ok(rows[i].value >= rows[i - 1].value,
+          `${kind} ${rows[i - 1].size} ${rows[i - 1].value} should not come after ${rows[i].value}`);
+      }
+    }
+  }
   await cell("A1").click();
   assert.equal(await active(), "tubeQuantity");
   assert.equal(await page.locator("#tubeSpec").inputValue(), "2.7pF 50V C0G ±0.25pF");
@@ -267,10 +305,15 @@ test("tube box records physical parts, counts by keyboard and prints only essent
 
   // Lid index: position, value, type and package only.
   await page.locator("#tubeShowPrint").click();
-  assert.equal(await page.locator("#tubePrintWidth").inputValue(), "400");
-  assert.equal(await page.locator("#tubePrintHeight").inputValue(), "400");
+  // 盒盖 140 × 140 mm，A4 一张 1:1 打完，没有 A2/拼接选项。
+  assert.equal(await page.locator("#tubePrintWidth").inputValue(), "140");
+  assert.equal(await page.locator("#tubePrintHeight").inputValue(), "140");
+  assert.equal(await page.locator("#tubePrintTiled").count(), 0);
   assert.equal(await page.locator("#tubePreview .tubePrintCell").count(), 100);
   assert.equal(await page.locator("#tubePreview .tubePrintPage").count(), 1);
+  assert.match(await page.locator("#tubePrintWarning").textContent(), /A4 · 297 × 210 mm · 1 页 · 每格 14\.0 × 14\.0 mm/);
+  const cellMm = await page.locator("#tubePreview .tubePrintCell").first().evaluate((el) => el.getBoundingClientRect().width * 25.4 / 96);
+  assert.ok(Math.abs(cellMm - 14) < 0.3, `cell should lay out at 14 mm, got ${cellMm}`);
   const printed = (position) => page.locator(`#tubePreview .tubePrintCell[data-position="${position}"]`);
   assert.equal(await printed("A1").locator(".tubePrintValue").textContent(), "100nF");
   assert.equal(await printed("A1").locator(".tubePrintMeta").textContent(), "C · 0402");
@@ -284,6 +327,22 @@ test("tube box records physical parts, counts by keyboard and prints only essent
   const blank = page.locator("#tubePreview .tubePrintCell").filter({ hasNot: page.locator(".tubePrintValue") });
   assert.ok(await blank.count() > 0, "tubes beyond the suggested layout print only the position");
   assert.match(await blank.first().textContent(), /^[A-J](?:10|[1-9])$/);
+  // 小件印型号而不是“容量”，类型/封装照旧。
+  const positionOf = (needle) => page.locator("#tubeGrid [data-tube-position]").evaluateAll((nodes, text) => {
+    const hit = nodes.find((node) => node.classList.contains("suggested") && node.getAttribute("aria-label").includes(text));
+    return hit ? hit.dataset.tubePosition : "";
+  }, needle);
+  for (const [needle, value, meta] of [
+    ["TPESD8L3.3", "0.3pF", "D · 0402"],
+    ["LED 红", "LED 红", "D · 0805"],
+    ["LED 黄", "LED 黄", "D · 0805"],
+    ["NCP18XH103F03RB", "10k NTC", "RT · 0603"],
+  ]) {
+    const position = await positionOf(needle);
+    assert.ok(position, needle + " should still be suggested");
+    assert.equal(await printed(position).locator(".tubePrintValue").textContent(), value);
+    assert.equal(await printed(position).locator(".tubePrintMeta").textContent(), meta);
+  }
   assert.doesNotMatch(await page.locator("#tubePreview").textContent(), /颗|LCSC|建议|未盘点|备用|实盘/);
 
   const pdfPages = (pdf) => [...pdf.toString("latin1").matchAll(/\/Type\s*\/Page\b/g)].length;
@@ -295,12 +354,20 @@ test("tube box records physical parts, counts by keyboard and prints only essent
     return pdf;
   };
   assert.equal(pdfPages(await printToPdf()), 1);
-  await page.locator("#tubePrintTiled").check();
-  assert.equal(await page.locator("#tubePreview .tubePrintPage").count(), 4);
-  assert.equal(pdfPages(await printToPdf()), 4);
+  assert.match(await page.locator("#tubePrintMedia").textContent(), /size: 297mm 210mm/);
+  // 比 A4 大的尺寸直接拒绝，不再偷偷缩放到纸宽。
+  await page.locator("#tubePrintWidth").fill("400");
+  await page.locator("#tubePrintHeight").fill("400");
+  assert.equal(await page.locator("#tubeDoPrint").isDisabled(), true);
+  assert.match(await page.locator("#tubePrintWarning").textContent(), /超出 A4 可打印范围/);
+  await page.locator("#tubePrintWidth").fill("140");
+  await page.locator("#tubePrintHeight").fill("140");
+  assert.equal(await page.locator("#tubeDoPrint").isEnabled(), true);
   await page.locator("#tubePrintMode").selectOption("lid");
-  assert.equal(await page.locator("#tubePrintWidth").inputValue(), "400");
+  assert.equal(await page.locator("#tubePrintWidth").inputValue(), "140");
+  assert.equal(await page.locator("#tubePrintHeight").inputValue(), "140");
   assert.equal(await page.locator("#tubePreview .tubePrintCell").count(), 100);
+  assert.equal(await page.locator("#tubePreview .tubePrintPage").count(), 1);
   await page.locator("#tubePrintMode").selectOption("labels");
   await page.locator("#tubePrintWidth").fill("28");
   await page.locator("#tubePrintHeight").fill("12");
@@ -328,6 +395,23 @@ test("tube box records physical parts, counts by keyboard and prints only essent
   assert.doesNotMatch(await page.locator("html").getAttribute("data-printed"), /printingTubes/);
   assert.deepEqual(await page.locator("#printSheet .printPage").evaluateAll((pages) =>
     pages.map((page) => page.querySelectorAll(".cell").length)), [100, 18]);
+
+  // 整盒清空：取消时不动，确认后回到默认建议摆位。
+  await page.locator("#btnPrepClose").click();
+  await page.locator("#btnBack").click();
+  await openShared();
+  const beforeReset = await page.evaluate(() => localStorage.getItem("pk-assembly-tube-box"));
+  page.once("dialog", (dialog) => dialog.dismiss());
+  await page.locator("#tubeReset").click();
+  assert.equal(await page.evaluate(() => localStorage.getItem("pk-assembly-tube-box")), beforeReset);
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.locator("#tubeReset").click();
+  await page.locator("#tubeMessage").getByText(/已清空整盒/).waitFor();
+  assert.equal(await page.evaluate(() => localStorage.getItem("pk-assembly-tube-box")), "{}");
+  assert.equal(await position(), "A1");
+  assert.equal(await page.locator("#tubeSpec").inputValue(), "2.7pF 50V C0G ±0.25pF");
+  assert.match(await page.locator("#tubeGridStatus").textContent(), /已登记 0 格/);
+  assert.match(await page.locator("#tubeGridStatus").textContent(), /建议 69 格/);
 
   // 建议 BOM 读不到时退回手动登记，不影响管盒本身。
   const requests = [];
