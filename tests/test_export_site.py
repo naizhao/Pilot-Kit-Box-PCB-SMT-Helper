@@ -143,6 +143,30 @@ class ExportSiteTests(unittest.TestCase):
         with self.assertRaises(FileExistsError):
             site.export_site(root, "HEAD", output)
 
+    def test_snapshot_rejects_workbooks_and_extra_private_datasets_before_writing(self):
+        workspace = self.workspace()
+        files = site.prepare(workspace)
+        files.update({"scripts/local_inventory.py": b"# public source", "tests/test_local_inventory.py": b"# synthetic tests"})
+
+        def fake(repo, *args, **kwargs):
+            if args[0] == "ls-tree":
+                return "\0".join(files).encode()
+            return files[args[1].split(":", 1)[1]]
+
+        output = workspace / "output"
+        with patch.object(site, "resolve_commit", return_value="a" * 40), patch.object(site, "git", side_effect=fake), patch.object(
+                site, "read_blob", side_effect=lambda repo, sha, name: files[name]):
+            snapshot = site.public_files(workspace, "HEAD")
+            self.assertNotIn("scripts/local_inventory.py", snapshot)
+            self.assertNotIn("tests/test_local_inventory.py", snapshot)
+            for name in ("库存.XLSX", "data/private-stock.json", "docs/owned-parts.csv"):
+                with self.subTest(name=name):
+                    files[name] = b"fictional content"
+                    with self.assertRaises(ValueError):
+                        site.export_site(workspace, "HEAD", output)
+                    self.assertFalse(output.exists())
+                    del files[name]
+
     def test_privacy_scans_documentation_and_windows_paths_without_exposing_value(self):
         for value in [b"/Users/" + b"fictional-builder/site", b"/home/" + b"fictional-builder/site",
                       rb"C:\Users" + rb"\fictional-builder\site"]:

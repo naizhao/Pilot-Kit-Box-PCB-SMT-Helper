@@ -30,19 +30,22 @@ def read_blob(repository, sha, path):
     return git(repository, "show", f"{sha}:{path}")
 
 
-def check_public_privacy(repository, ref, replacements=None):
+def check_public_privacy(repository, ref, replacements=None, *, allowed=None):
     """检查将发布的提交与替换内容；诊断不回显个人目录。"""
     replacements = replacements or {}
     names = set(git(repository, "ls-tree", "-r", "--name-only", "-z", ref).decode().split("\0"))
     names.discard("")
     names.update(replacements)
+    if allowed is not None and names - allowed:
+        raise ValueError("提交树含非公开白名单文件")
     home_path = re.compile(r"/(?:Users|home)/[^/\s\"'<>]+|[A-Za-z]:[\\/]+Users[\\/]+[^\\/\s\"'<>]+")
     findings = []
     for name in sorted(names):
-        if name == "data/batches.json" or "internal" in Path(name).parts:
+        if (name == "data/batches.json" or "internal" in Path(name).parts or
+                Path(name).suffix.casefold() in {".xls", ".xlsx", ".xlsm", ".xlsb"}):
             raise ValueError("提交树含私有文件")
         content = replacements[name] if name in replacements else git(repository, "show", f"{ref}:{name}")
-        for number, line in enumerate(content.decode("utf-8", errors="replace").splitlines(), 1):
+        for number, line in enumerate(public_text(content).splitlines(), 1):
             if home_path.search(line):
                 findings.append(f"{name}:{number}: user-home-path")
         if name.endswith(".json"):
@@ -69,7 +72,9 @@ def public_note(note):
 
 PUBLIC_CODE = {"index.html", "i18n-en.js", "tests/test_i18n_data.py", "README.md", "LICENSE", "CNAME", ".nojekyll",
                ".gitignore", "data/.gitignore", "_build.json",
-               "scripts/export_site.py", "tests/test_export_site.py", ".github/workflows/pages.yml"}
+               "scripts/export_site.py", "tests/test_export_site.py", "tests/test_tube_box.cjs",
+               "scripts/local_inventory.py", "tests/test_local_inventory.py",
+               ".github/workflows/pages.yml"}
 
 
 VERSION_FILE = "data/versions.json"
@@ -134,12 +139,22 @@ def reject_personal_notes(name, raw):
                     raise ValueError(f"{name}: 原始个人 note，必须先 prepare")
 
 
+def public_text(raw):
+    if b"\0" in raw or raw.startswith(b"PK\x03\x04"):
+        raise ValueError("公开白名单文件必须是纯文本")
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError:
+        raise ValueError("公开白名单文件必须是 UTF-8 文本") from None
+
+
 def check_contents(files):
     home = re.compile(r"/(?:Users|home)/[^/\s\"'<>]+|[A-Za-z]:[\\/]+Users[\\/]+[^\\/\s\"'<>]+")
     for name, raw in files.items():
+        text = public_text(raw)
         if name.endswith(".json"):
             reject_personal_notes(name, raw)
-        for number, line in enumerate(raw.decode("utf-8", errors="replace").splitlines(), 1):
+        for number, line in enumerate(text.splitlines(), 1):
             if home.search(line):
                 raise ValueError(f"{name}:{number}: user-home-path")
 
@@ -166,7 +181,7 @@ def public_files(repository, ref):
     read = lambda name: read_blob(repository, sha, name)
     files = validate_files(read)
     # 校验整个提交树，打包则仅限站点所需文件。
-    check_public_privacy(repository, sha)
+    check_public_privacy(repository, sha, allowed=PUBLIC_CODE | files.keys())
     if json.loads(read("_build.json")) != {"source_repository": PUBLISH_REPOSITORY}:
         raise ValueError("提交元数据必须仅标记本仓库来源")
     files["index.html"] = read("index.html")

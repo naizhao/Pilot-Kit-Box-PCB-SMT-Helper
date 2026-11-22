@@ -353,11 +353,126 @@ footer .sp{flex:1}
   color:inherit;padding:7px 12px;font-size:14px;width:230px;outline:none;
 }
 #prepFilter:focus{border-color:var(--cur)}
-/* ── 打印：备料摆放格（一张 A4，100 小格 = 10×10，元件放进格子里） ─ */
+/* ── 编码管盒 ───────────────────────────────────────────── */
+#tubeBox{
+  position:fixed;inset:0;margin:auto;width:min(1060px,calc(100% - 24px));max-width:none;
+  max-height:calc(100% - 24px);padding:18px;background:var(--panel);color:var(--text);
+  border:1px solid var(--line);border-radius:12px;overflow:auto;
+}
+#tubeBox::backdrop{background:#000a}
+.tubeBar{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin-bottom:12px}
+.tubeBar h2{margin-right:auto}
+.tubeHelp{font-size:13px;color:var(--dim);overflow-wrap:anywhere}
+#tubeBox input:not([type="checkbox"]),#tubeBox select{
+  min-width:0;width:100%;font:inherit;color:inherit;background:var(--bg);
+  border:1px solid var(--line);border-radius:6px;padding:6px 8px;
+}
+#tubeBox input:focus,#tubeBox select:focus{outline:none;border-color:var(--cur)}
+.tubeBody{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(310px,1fr);gap:16px;margin-top:12px;align-items:start}
+#tubeFilter{margin-bottom:8px}
+#tubeGrid{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:3px}
+#tubeGrid.filtered{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
+.tubeSlot{padding:4px 3px;min-height:56px;border:1px solid var(--line);border-radius:5px;text-align:center;min-width:0}
+.tubeSlot b,.tubeSlot span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tubeSlot b{font:700 12px/1.3 ui-monospace,monospace}
+.tubeSlot span{font-size:10px;color:var(--dim)}
+.tubeSlot .tubeSlotHead{display:flex;align-items:baseline;justify-content:space-between;gap:2px}
+.tubeSlot .tubeSlotHead i{font:600 10px/1.3 ui-monospace,monospace;font-style:normal;color:var(--peer)}
+.tubeSlot .tubeSlotValue{font:700 11px/1.35 ui-monospace,monospace;color:var(--peer)}
+.tubeSlot.filled{background:var(--bg)}
+.tubeSlot.suggested{border-style:dashed}
+.tubeSlot.suggested .tubeSlotValue{color:var(--dim);font-weight:600}
+#tubeSource{margin:-4px 0 6px}
+.tubeSlot[aria-pressed="true"]{border-color:var(--cur);color:var(--cur)}
+.tubeSlot:hover,.tubeSlot:focus-visible{border-color:var(--peer)}
+#tubeForm{display:grid;gap:12px;align-content:start;border:1px solid var(--line);border-radius:10px;padding:14px}
+.tubeFormHead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.tubeFormHead #tubePosition{font:700 30px/1 ui-monospace,monospace;letter-spacing:1px;color:var(--cur)}
+.tubeFormHead .tubeHelp{font-size:12px}
+.tubeHero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px 12px}
+.tubeHero label,.tubeCodes label{display:block;font-size:12px;color:var(--dim)}
+.tubeSpecField,.tubeQtyField{grid-column:1/-1}
+#tubeBox #tubeKind{font-size:19px;font-weight:600}
+#tubeBox #tubeSize{font:600 21px/1.25 ui-monospace,monospace}
+#tubeBox #tubeSpec{font-size:24px;font-weight:650;letter-spacing:.2px}
+#tubeBox #tubeQuantity{font:700 36px/1.1 ui-monospace,monospace;height:58px;text-align:center;appearance:textfield;-moz-appearance:textfield}
+#tubeBox #tubeQuantity::-webkit-outer-spin-button,#tubeBox #tubeQuantity::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.tubeQtyRow{display:flex;align-items:center;gap:8px;margin-top:2px}
+.tubeQtyRow input{flex:1}
+.tubeUnit{font-size:15px;color:var(--dim)}
+.tubeCodes{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:10px 12px}
+.tubeCodes .tubeSupplier{grid-column:1/-1}
+#tubeStepHelp{font-size:12px}
+#tubeMessage{color:var(--cur);min-height:1.4em}
+#tubeImport{margin-top:16px;border-top:1px solid var(--line);padding-top:10px}
+#tubeImport summary{cursor:pointer}
+#tubeImportTemplate{color:inherit;text-decoration:none}
+#tubeImportTemplate:hover{color:var(--cur)}
+#tubeImportRows{list-style:none;max-height:240px;overflow:auto}
+#tubeImportRows li{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--line)}
+#tubeImportRows li p{min-width:0;overflow-wrap:anywhere}
+.tubePickup{font-size:12px;color:var(--peer);overflow-wrap:anywhere}
+.tubePickup ul{margin:0;list-style:none}
+.tubePickup .tubeMismatch{color:var(--cur);font-weight:600}
+.tubePickup li{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px}
+.tubePickup .tubePos{
+  display:inline-flex;align-items:baseline;gap:4px;padding:0 7px;border-radius:5px;
+  background:#1b2733;color:var(--peer);font:700 12.5px/1.6 ui-monospace,monospace;
+}
+.tubePickup .tubePos i{font-style:normal;font-size:10.5px;font-weight:500;color:var(--dim)}
+.prepCard.cur .tubePickup .tubePos{background:#2a2010;color:var(--cur);outline:1px solid var(--cur)}
+.prepCard.cur .tubePickup .tubePos i{color:var(--text)}
+#specTube,#swapTube{margin-top:5px}
+#specTube .tubePickup ul,#swapTube .tubePickup ul{max-height:84px;overflow:auto}
+.tubePrintSetup{display:flex;flex-wrap:wrap;align-items:end;gap:10px 16px;margin:12px 0}
+.tubePrintSetup label{font-size:13px}
+.tubePrintSetup label:has(input[type="number"]){width:110px}
+[aria-pressed="true"]:is(#tubeShowStock,#tubeShowPrint){border-color:var(--cur);color:var(--cur)}
+#tubePrintWarning{margin:4px 0 10px}
+#tubePreview{display:grid;gap:12px;overflow:auto}
+.tubePreviewPaper{overflow:auto;max-width:100%;padding:12px;background:#e4e8ed;color:#111;border-radius:6px}
+.tubePreviewPaper figcaption{margin-bottom:6px;font-size:12px}
+.tubePrintPage{
+  display:grid;width:max-content;height:max-content;background:#fff;color:#111;
+  grid-template-columns:repeat(var(--tube-columns),var(--tube-cell-width));
+  grid-auto-rows:var(--tube-cell-height);gap:var(--tube-cell-gap,0mm);
+}
+/* 盒顶一格 40 mm 见方：只放管位、容量、类型和封装，字号才放得大 */
+.tubePrintCell{
+  border:0.25mm solid #222;padding:1mm;overflow:hidden;
+  display:flex;flex-direction:column;justify-content:safe center;gap:0.3mm;
+  font-family:sans-serif;overflow-wrap:anywhere;min-width:0;min-height:0;
+}
+.tubePrintCell>*{flex:none}
+.tubePrintCell .tubePrintCode{font:700 8pt/1.05 ui-monospace,monospace;color:#555}
+.tubePrintCell .tubePrintValue{font:800 16pt/1.05 sans-serif;letter-spacing:-.2px}
+.tubePrintCell .tubePrintMeta{font:600 9pt/1.1 sans-serif;color:#333}
+.tubePrintLabels .tubePrintCell{padding:0.4mm;gap:0}
+.tubePrintLabels .tubePrintCode{font-size:5pt;line-height:1}
+.tubePrintLabels .tubePrintValue{font-size:7pt;line-height:1}
+.tubePrintLabels .tubePrintMeta{font-size:5pt;line-height:1}
+.tubePrintCell[data-overflow]{outline:2px solid var(--warn);outline-offset:-2px}
+#tubePrint{display:none}
+@media(max-width:700px){
+  .tubeBody{grid-template-columns:minmax(0,1fr)}
+  #tubeBox{padding:12px}
+  /* 窄屏上 10 列格子只有 30 px 宽，只留管位和数量，详细规格在下方表单里 */
+  .tubeSlot{min-height:42px;padding:2px 1px}
+  .tubeSlot .tubeSlotHead{display:block;line-height:1.2}
+  .tubeSlot b{font-size:10px}
+  .tubeSlot .tubeSlotHead i{font-size:9px}
+  .tubeSlot .tubeSlotValue,.tubeSlot .tubeSlotSize{display:none}
+}
+/* ── 打印：备料摆放格（每张 A4 最多 100 格） ─ */
 #printSheet{display:none}
 @media print{
-  body > *:not(#printSheet){display:none!important}
-  #printSheet{display:block}
+  body:not(.printingTubes) > *:not(#printSheet),
+  body.printingTubes > *:not(#tubePrint){display:none!important}
+  body:not(.printingTubes) > #printSheet,body.printingTubes > #tubePrint{display:block}
+  body{overflow:visible;height:auto}
+  #tubePrint{page:tube-box}
+  #tubePrint .tubePrintPage{break-inside:avoid}
+  #tubePrint .tubePrintPage + .tubePrintPage{break-before:page}
   @page{size:A4 landscape;margin:4mm}
   /* 打印时清掉浏览器默认 body 边距，别让它把网格顶到第二页 */
   body{margin:0!important;padding:0!important;background:#fff;color:#111}
@@ -370,7 +485,9 @@ footer .sp{flex:1}
     display:grid;grid-template-columns:repeat(10,minmax(0,1fr));grid-template-rows:repeat(10,1fr);
     height:192mm;gap:1.2mm;
   }
-  #printSheet{overflow:hidden;width:285mm}
+  #printSheet{width:285mm}
+  .printPage{break-inside:avoid}
+  .printPage + .printPage{break-before:page}
   .cell{
     border:0.35mm solid #222;border-radius:1mm;padding:0.9mm 1.2mm;
     overflow:hidden;display:flex;flex-direction:column;
@@ -429,6 +546,7 @@ footer .sp{flex:1}
   <h1>Pilot Kit 贴片助手</h1>
   <label class="language-control"><span class="language-icon" aria-hidden="true">🌐</span><select class="language-select" title="Language / 语言" aria-label="Language / 语言"><option value="zh-CN">中文</option><option value="en">English</option></select></label>
   <div class="lead">选一个版本开始。进度存在本机浏览器里，关掉再开还在。</div>
+  <button class="act" id="btnTubePicker">共享编码管盒</button>
   <div class="cards" id="cards"></div>
   <div style="color:var(--dim);font-size:12.5px;text-align:center">
     <kbd>空格</kbd> 标记已贴并跳下一个 &nbsp;·&nbsp; <kbd>←</kbd> 退回上一个 &nbsp;·&nbsp;
@@ -447,6 +565,7 @@ footer .sp{flex:1}
         </div>
         <div id="specMeta"></div>
         <div id="specNote"></div>
+        <div id="specTube"></div>
       </div>
       <div id="qty">
         <div id="qtyNum">—</div>
@@ -476,6 +595,7 @@ footer .sp{flex:1}
         <div class="qty">备料 <b id="swapQty"></b> 颗</div>
         <div id="swapBatch"></div>
         <div class="meta" id="swapMeta"></div>
+        <div id="swapTube"></div>
       </div>
       <div id="sideNote"></div>
       <div id="toast"></div>
@@ -535,6 +655,93 @@ footer .sp{flex:1}
 
 <div id="printSheet"></div>
 
+<dialog id="tubeBox" aria-labelledby="tubeHeading">
+  <div class="tubeBar">
+    <h2 id="tubeHeading">共享编码管盒</h2>
+    <label class="language-control"><span class="language-icon" aria-hidden="true">🌐</span><select class="language-select" title="Language / 语言" aria-label="Language / 语言"><option value="zh-CN">中文</option><option value="en">English</option></select></label>
+    <button type="button" class="act" id="tubeShowStock" aria-pressed="true">盘点</button>
+    <button type="button" class="act" id="tubeShowPrint" aria-pressed="false">打印管盒</button>
+    <button type="button" class="act" id="tubeClose">关闭 <kbd>Esc</kbd></button>
+  </div>
+  <p class="tubeHelp">各版本共用一只 A1–J10 管盒，适用 1.8 / 2 mL 管。库存只记实物，保存在此浏览器。</p>
+  <p id="tubeSource" class="tubeHelp" role="status"></p>
+  <section id="tubeStock">
+  <p id="tubeGridStatus" class="tubeHelp" role="status"></p>
+  <div class="tubeBody">
+    <div>
+      <label for="tubeFilter">搜索管盒</label>
+      <input id="tubeFilter" type="search">
+      <div id="tubeGrid"></div>
+    </div>
+    <form id="tubeForm">
+      <div class="tubeFormHead">
+        <h3 id="tubePosition">A1</h3>
+        <p class="tubeHelp" id="tubeSlotDetails"></p>
+      </div>
+      <div class="tubeHero">
+        <label>元件类型
+          <select id="tubeKind">
+            <option value="C">C · 电容</option>
+            <option value="R">R · 电阻</option>
+            <option value="L">L · 电感</option>
+          </select>
+        </label>
+        <label>封装 <input id="tubeSize" maxlength="60" autocomplete="off" placeholder="0402"></label>
+        <label class="tubeSpecField">规格 <input id="tubeSpec" maxlength="120" autocomplete="off" placeholder="100nF 50V X7R ±10%"></label>
+        <label class="tubeQtyField">实盘数量（留空表示未知）
+          <span class="tubeQtyRow"><input id="tubeQuantity" type="number" min="0" step="1" max="9007199254740991" inputmode="numeric" placeholder="待盘点"><span class="tubeUnit">颗</span></span>
+        </label>
+      </div>
+      <div class="tubeCodes">
+        <label>LCSC 料号 <input id="tubeLcsc" maxlength="20" autocomplete="off"></label>
+        <label>厂家料号 <input id="tubeMpn" maxlength="100" autocomplete="off"></label>
+        <label class="tubeSupplier">供料商 <input id="tubeSupplier" maxlength="60" autocomplete="off" list="tubeSuppliers" placeholder="淘宝／立创／捷配…"></label>
+      </div>
+      <datalist id="tubeSuppliers"></datalist>
+      <div class="tubeBar">
+        <button class="act" id="tubeSave" type="submit">保存 <kbd>Enter</kbd></button>
+        <button class="act" id="tubeClear" type="button">清空此管位</button>
+      </div>
+      <p class="tubeHelp" id="tubeStepHelp">Enter 保存并跳到下一管 · ←/→ 切前后管位</p>
+      <p class="tubeHelp" id="tubeMessage" role="status"></p>
+    </form>
+  </div>
+  <details id="tubeImport">
+    <summary>从本地文件核对库存</summary>
+    <p class="tubeHelp">选择 UTF-8 CSV，核对管位和数量后导入到此浏览器。</p>
+    <p class="tubeHelp">填写实际管位（A1–J10）、类型（电容、电阻或电感）和规格（或厂家料号）。本地库存填实盘整数，0 表示无库存，留空表示未知。没有填管位的行按顺序放进空位。</p>
+    <div class="tubeBar">
+      <a class="act" id="tubeImportTemplate" download="管盒库存模板.csv">下载 CSV 模板</a>
+      <label>库存文件 <input id="tubeImportFile" type="file" accept=".csv,text/csv"></label>
+      <button class="act" id="tubeImportApply" type="button" hidden></button>
+      <button class="act" id="tubeImportConfirm" type="button" hidden></button>
+      <button class="act" id="tubeImportCancel" type="button" hidden>取消</button>
+    </div>
+    <p id="tubeImportStatus" class="tubeHelp" role="status"></p>
+    <ul id="tubeImportRows"></ul>
+  </details>
+  </section>
+  <section id="tubePrintPanel" aria-labelledby="tubeShowPrint" hidden>
+    <div class="tubePrintSetup">
+      <label>打印内容
+        <select id="tubePrintMode">
+          <option value="paper">盒顶普通纸索引</option>
+          <option value="lid">盒顶贴纸索引</option>
+          <option value="labels">单管贴纸</option>
+        </select>
+      </label>
+      <label>宽度（mm） <input id="tubePrintWidth" type="number" min="1" step="any" inputmode="decimal"></label>
+      <label>高度（mm） <input id="tubePrintHeight" type="number" min="1" step="any" inputmode="decimal"></label>
+      <label id="tubeTiledField"><input type="checkbox" id="tubePrintTiled"> A4 实寸拼接</label>
+      <button type="button" class="act" id="tubeDoPrint">打印预览内容</button>
+    </div>
+    <p class="tubeHelp">打印时按下方选择纸张，设为 100%／实际大小，关闭页眉和页脚。</p>
+    <p class="tubeHelp" id="tubePrintWarning" role="status"></p>
+    <div id="tubePreview" aria-label="打印预览"></div>
+  </section>
+</dialog>
+<div id="tubePrint"></div>
+
 <script src="i18n-en.js?v=f78c5d0e6a85"></script>
 <script>
 "use strict";
@@ -542,6 +749,7 @@ footer .sp{flex:1}
 // ── 状态 ────────────────────────────────────────────────────
 let DOC = null;          // 当前变体的完整数据
 let FLAT = [];           // 展平的推进序列 [{gi, pi, part, group}]
+let placementGroups = []; // 配料纸与取料提示共用的摆盘顺序
 let cursor = 0;          // FLAT 的下标
 let done = new Set();    // 已贴位号
 let skipped = new Set(); // 主动跳过的位号
@@ -586,6 +794,34 @@ const STATIC_EN = {
   "关闭": "Close",
   "备料清单": "Preparation checklist",
   "打印配料纸": "Print placement grid",
+  "共享编码管盒": "Shared tube box",
+  "各版本共用一只 A1–J10 管盒，适用 1.8 / 2 mL 管。库存只记实物，保存在此浏览器。": "All board versions share one A1–J10 box for 1.8 / 2 mL tubes. It records physical stock in this browser.",
+  "搜索管盒": "Search tubes",
+  "元件类型": "Part type",
+  "封装": "Package",
+  "规格": "Specification",
+  "保存": "Save",
+  "Enter 保存并跳到下一管 · ←/→ 切前后管位": "Enter saves and moves to the next tube · ←/→ switch tubes",
+  "实盘规格": "Stock specification",
+  "LCSC 料号": "LCSC part number",
+  "厂家料号": "Manufacturer part number",
+  "供料商": "Supplier",
+  "实盘数量（留空表示未知）": "Counted quantity (blank if unknown)",
+  "从本地文件核对库存": "Review stock from a local file",
+  "选择 UTF-8 CSV，核对管位和数量后导入到此浏览器。": "Choose a UTF-8 CSV, verify each position and count, then import in this browser.",
+  "填写实际管位（A1–J10）、类型（电容、电阻或电感）和规格（或厂家料号）。本地库存填实盘整数，0 表示无库存，留空表示未知。没有填管位的行按顺序放进空位。": "Enter the physical position (A1–J10), part type (capacitor, resistor or inductor), and specification or manufacturer part number. Enter a whole stock count. Use 0 for no stock or leave the count blank if unknown. Rows without a position fill the free slots in order.",
+  "下载 CSV 模板": "Download CSV template",
+  "库存文件": "Stock file",
+  "取消": "Cancel",
+  "清空此管位": "Clear this tube",
+  "盘点": "Stock",
+  "打印管盒": "Tube box printing",
+  "打印内容": "Print layout",
+  "宽度（mm）": "Width (mm)",
+  "高度（mm）": "Height (mm)",
+  "A4 实寸拼接": "Tile at actual size on A4",
+  "打印预览内容": "Print this layout",
+  "打印时按下方选择纸张，设为 100%／实际大小，关闭页眉和页脚。": "Select the paper size below, set scaling to 100% / Actual size, and turn off headers and footers.",
   "清空备料": "Clear preparation",
   "搜位号/型号，如 U16、AO3401A": "Search reference / MPN, e.g. U16, AO3401A"
 };
@@ -617,6 +853,7 @@ function applyLanguage() {
   document.title = ui("Pilot Kit 贴片助手", "Pilot Kit SMT Helper");
   for (const record of staticTranslations) record.node.textContent = language === "en" ? record.en : record.zh;
   $("prepFilter").placeholder = language === "en" ? STATIC_EN[filterPlaceholder] : filterPlaceholder;
+  $("tubeQuantity").placeholder = ui("待盘点", "Awaiting count");
   for (const select of document.querySelectorAll(".language-select")) {
     select.value = language;
   }
@@ -632,6 +869,16 @@ function setLanguage(next) {
   } else { language = next; error.hidden = true; }
   try { localStorage.setItem(LANGUAGE_KEY, language); } catch (e) { /* Keep the current session usable. */ }
   applyLanguage();
+  if ($("tubeBox").open) {
+    renderTubeKindLabels();
+    renderTubeGrid();
+    renderTubeSlotDetails();
+    renderTubeImport();
+    renderTubePrintOptions();
+    // 上一句「已保存 A1」是上一种语言的临时提示，切语言后不该留着。
+    $("tubeMessage").textContent = "";
+    if (!$("tubePrintPanel").hidden) renderTubePrint();
+  }
   renderCatalog();
   clearTimeout(toastTimer);
   $("toast").classList.remove("on");
@@ -748,14 +995,1010 @@ async function fetchData(path) {
   return fetch(path + "?v=" + hash, { cache: "no-cache" });
 }
 
+// ── 编码管盒 ────────────────────────────────────────────────
+/* 盒子里装的是实物：一格一管料，身份就是类型、规格、封装和料号。
+   不记它来自哪块板的 BOM——同一管料会在多个版本里出现，绑到某个版本的
+   物料组，换个版本就得重录。备料/换料时按料号或规格+封装去找管位。 */
+const TUBE_KEY = "pk-assembly-tube-box";
+const TUBE_POSITIONS = [..."ABCDEFGHIJ"].flatMap((row) =>
+  Array.from({ length: 10 }, (_, index) => row + (index + 1)));
+const TUBE_KINDS = { "电容": "C", "电阻": "R", "电感": "L" };
+const TUBE_KIND_NAMES = { C: "电容", R: "电阻", L: "电感" };
+const validLcsc = (value) => /^C[0-9]+$/.test(value);
+const knownTubeCount = (qty) => Number.isSafeInteger(qty) && qty >= 0;
+const tubeCount = (qty) => knownTubeCount(qty) ? ui(`${qty} 颗`, `${qty} pcs`) : ui("数量未知", "Count unknown");
+let tubeRecords = {};
+let tubeStorageError = false;
+let tubePosition = "A1";
+let tubeSelectedRecord;
+let tubeBaseline = "";
+let tubeSuggestionDoc = null;
+let tubeSuggestionRequest = null;
+let tubeSuggestionFailed = false;
+
+function readTubes() {
+  const records = JSON.parse(localStorage.getItem(TUBE_KEY) || "{}");
+  if (!records || typeof records !== "object" || Array.isArray(records)) throw new Error("Invalid tube stock");
+  // 旧记录里还留着与某块板 BOM 组的关联。管盒现在只认实物，读到就清掉。
+  for (const record of Object.values(records)) {
+    if (record && typeof record === "object") delete record.binding;
+  }
+  return records;
+}
+
+function refreshTubeStock() {
+  try {
+    tubeRecords = readTubes();
+    tubeStorageError = false;
+  } catch (error) {
+    tubeStorageError = true;
+  }
+}
+refreshTubeStock();
+
+function writeTube(record) {
+  try {
+    const changed = readTubes();
+    if (JSON.stringify(changed[tubePosition]) !== tubeSelectedRecord) {
+      tubeRecords = changed;
+      renderTubeGrid();
+      renderTubeSlotDetails();
+      $("tubeMessage").textContent = ui("此管位已在其他标签页更新。请重新选择管位并核对实盘。", "This tube changed in another tab. Select the position again and check the recorded stock.");
+      return false;
+    }
+    if (record) changed[tubePosition] = record;
+    else delete changed[tubePosition];
+    localStorage.setItem(TUBE_KEY, JSON.stringify(changed));
+    tubeRecords = changed;
+    tubeStorageError = false;
+    return true;
+  } catch (error) {
+    $("tubeMessage").textContent = ui("无法保存。请检查浏览器对此站点的存储权限。", "Unable to save. Check this site's storage permission.");
+    return false;
+  }
+}
+
+const tubeIdentityText = (value) => (value || "").normalize("NFKC").replace(/\s+/g, "").replace(/[µμ]/g, "u").toLowerCase();
+
+function sameTubePart(group, spec, size) {
+  return Boolean(spec && size) && tubeIdentityText(group.spec) === tubeIdentityText(spec)
+    && tubeIdentityText(group.size || group.fp) === tubeIdentityText(size);
+}
+
+/* 板上这组料对应哪几管？有料号就认料号，没有就认规格+封装。
+   两边都有料号却不一样，就是不同的料，不能靠规格文案凑合。 */
+function tubeMatches(g) {
+  const kind = TUBE_KINDS[g.kind];
+  if (!kind) return [];
+  const lcsc = validLcsc(g.lcsc || "") ? g.lcsc.toUpperCase() : "";
+  return TUBE_POSITIONS.flatMap((position) => {
+    const record = tubeRecords[position];
+    if (!record || record.kind !== kind) return [];
+    const recordLcsc = validLcsc(record.lcsc || "") ? record.lcsc.toUpperCase() : "";
+    const matches = lcsc && recordLcsc ? lcsc === recordLcsc
+      : sameTubePart(g, record.spec, record.size);
+    return matches ? [{ position, record }] : [];
+  });
+}
+
+/* 管盒默认按最新一版 BOM 的 C/R/L 与容量排序铺满盒面，和摆盘纸的顺序一致。
+   建议只是预填：点空格就把这一管料的类型、规格、封装填好，人只需要放管、填数量。
+   已登记的管位永远优先显示实物，建议会自动跳过已躺在盒里的料。 */
+function loadTubeSuggestion() {
+  const id = catalog?.[0]?.id || "";
+  if (!id || tubeSuggestionDoc?.id === id || tubeSuggestionRequest) return;
+  tubeSuggestionFailed = false;
+  tubeSuggestionRequest = fetchData(`data/${id}.json`)
+    .then((response) => {
+      if (!response.ok) throw new Error("Missing BOM");
+      return response.json();
+    })
+    .then((doc) => { tubeSuggestionDoc = doc; })
+    .catch(() => { tubeSuggestionFailed = true; })
+    .finally(() => {
+      tubeSuggestionRequest = null;
+      if (!$("tubeBox").open) return;
+      renderTubeGrid();
+      renderTubeSlotDetails();
+      renderTubeImport();
+      if (!$("tubePrintPanel").hidden) renderTubePrint();
+      // 读到建议时只补空表单，别把正在输入的内容冲掉
+      if (!tubeRecords[tubePosition] && !$("tubeSpec").value.trim() && !$("tubeSize").value.trim()) selectTube(tubePosition);
+    });
+}
+
+function makeTubePlan() {
+  const doc = tubeSuggestionDoc;
+  const groups = doc ? orderForPlacement(doc.groups).filter((group) => TUBE_KINDS[group.kind]) : [];
+  const suggestions = new Map();
+  for (const group of groups) {
+    if (tubeMatches(group).length) continue;
+    const position = TUBE_POSITIONS.find((item) => !tubeRecords[item] && !suggestions.has(item));
+    if (!position) break;
+    suggestions.set(position, group);
+  }
+  return { doc, groups, suggestions, overflow: Math.max(0, groups.length - TUBE_POSITIONS.length) };
+}
+
+function renderTubePickup(g) {
+  const matches = tubeMatches(g);
+  if (!matches.length) return null;
+  const source = validLcsc(g.lcsc || "")
+    ? ui("管盒 · 同一料号，取料前核对", "Tube box · same LCSC part, verify before use")
+    : ui("管盒 · 规格与封装相符，取料前核对", "Tube box · matching specification and package, verify before use");
+  const rating = (text) => {
+    const value = text?.match(/(?:^|[^\w.])(\d+(?:\.\d+)?)\s*(k)?V(?:DC|AC)?\b/i);
+    return value ? Number(value[1]) * (value[2] ? 1000 : 1) : null;
+  };
+  const tolerance = (text) => text?.match(/(?:±|\+\s*\/\s*[−-])\s*(\d+(?:\.\d+)?)\s*%/)?.[1];
+  const specVoltage = rating(g.spec);
+  const bomVoltage = rating(g.voltage);
+  const expectedVoltage = specVoltage ?? bomVoltage;
+  const ambiguousVoltage = specVoltage !== null && bomVoltage !== null && specVoltage !== bomVoltage;
+  const expectedTolerance = tolerance(g.spec);
+  const stockGroups = new Map();
+  for (const { position, record } of matches) {
+    const identity = [record.spec, record.size, record.lcsc, record.mpn].filter(Boolean).join(" · ");
+    if (!stockGroups.has(identity)) stockGroups.set(identity, { record, positions: [] });
+    stockGroups.get(identity).positions.push({ position, record });
+  }
+  const rows = [...stockGroups.values()].map(({ record, positions }) => {
+    const voltage = rating(record.spec);
+    const tol = tolerance(record.spec);
+    const warnings = [];
+    if (expectedVoltage !== null && voltage !== null && expectedVoltage !== voltage) {
+      warnings.push(ui(`耐压不同（BOM ${expectedVoltage} V / 实盘 ${voltage} V）`, `Voltage differs (BOM ${expectedVoltage} V / stock ${voltage} V)`));
+    }
+    if (expectedTolerance !== undefined && tol !== undefined && Number(expectedTolerance) !== Number(tol)) {
+      warnings.push(ui(`容差不同（BOM ±${expectedTolerance}% / 实盘 ±${tol}%）`, `Tolerance differs (BOM ±${expectedTolerance}% / stock ±${tol}%)`));
+    }
+    if (g.size && record.size && record.size !== g.size) {
+      warnings.push(ui(`核对封装（BOM ${g.size} / 实盘 ${record.size}）`, `Check package (BOM ${g.size} / stock ${record.size})`));
+    }
+    const info = [dataText(record.spec), record.size, record.lcsc, record.mpn].filter(Boolean).join(" · ");
+    // 管位单独成块：备料清单里当前料卡片高亮时，格号跟着一起高亮
+    return h("li", {},
+      ...positions.map(({ position, record }) => h("span", { class: "tubePos" },
+        h("b", { text: position }),
+        h("i", { text: tubeCount(record.qty) }))),
+      h("span", { text: info }),
+      warnings.length ? h("span", { class: "tubeMismatch", text: " · " + warnings.join(" · ") }) : null);
+  });
+  return h("div", { class: "tubePickup" }, h("p", { text: source }),
+    ambiguousVoltage ? h("p", {
+      class: "tubeMismatch",
+      text: ui(`BOM 耐压字段不一致（规格 ${specVoltage} V / 耐压栏 ${bomVoltage} V），请先核对。`,
+        `BOM voltage fields disagree (specification ${specVoltage} V / voltage field ${bomVoltage} V). Verify before use.`),
+    }) : null,
+    h("ul", {}, ...rows));
+}
+
+function tubeStats() {
+  let filled = 0;
+  let counted = 0;
+  for (const position of TUBE_POSITIONS) {
+    const record = tubeRecords[position];
+    if (record) filled++;
+    if (knownTubeCount(record?.qty)) counted++;
+  }
+  return { filled, counted };
+}
+
+/* 盒顶纸一格只有 40 mm 见方，塞不下「100nF 50V X7R ±10%」。
+   只取标称值（100nF / 10kΩ / 6.2nH），类型和封装各占一行。 */
+const TUBE_VALUE_PATTERN = /(?:^|[^A-Za-z0-9])(\d+(?:\.\d+)?(?:\s*[pnuµmkKMG])?\s*(?:[Ff]|[Hh]|Ω|ω|[Rr]))(?![A-Za-z0-9])/;
+function tubeValueLabel(spec) {
+  const text = String(spec || "").replace(/\s+/g, " ").trim();
+  const match = text.match(TUBE_VALUE_PATTERN);
+  const value = match ? match[1].replace(/\s+/g, "") : text.split(" ")[0];
+  return value ? dataText(value) || value : "";
+}
+
+function renderTubeGrid() {
+  const grid = $("tubeGrid");
+  const search = $("tubeFilter").value.trim().toLowerCase();
+  const focused = document.activeElement?.dataset.tubePosition;
+  const { filled, counted } = tubeStats();
+  const { doc, groups, suggestions, overflow } = makeTubePlan();
+  renderTubeSuppliers();
+  clear(grid);
+  grid.classList.toggle("filtered", Boolean(search));
+  let visible = 0;
+  for (const position of TUBE_POSITIONS) {
+    const record = tubeRecords[position];
+    const suggestion = record ? null : suggestions.get(position);
+    const kind = record?.kind || (suggestion ? TUBE_KINDS[suggestion.kind] : "");
+    const spec = record?.spec || suggestion?.spec || "";
+    const size = record?.size || (suggestion ? suggestion.size || suggestion.fp : "") || "";
+    const lcsc = record?.lcsc || (suggestion ? suggestion.lcsc : "") || "";
+    const fields = [position, kind, spec, dataText(spec), size, lcsc, record?.mpn, record?.supplier];
+    if (search && !fields.filter(Boolean).some((field) => String(field).toLowerCase().includes(search))) continue;
+    visible++;
+    const info = record
+      ? [position, dataText(TUBE_KIND_NAMES[record.kind] || record.kind), dataText(record.spec), record.size, record.lcsc, record.supplier, tubeCount(record.qty)].filter(Boolean).join(" · ")
+      : suggestion
+        ? ui(`${position} · 建议 ${dataText(spec)} · ${size} · 未入库`, `${position} · suggested ${dataText(spec)} · ${size} · not stored`)
+        : ui(`${position} · 空格`, `${position} · Empty`);
+    const slot = h("button", {
+      type: "button",
+      class: "tubeSlot" + (record ? " filled" : suggestion ? " suggested" : ""),
+      "data-tube-position": position,
+      "aria-pressed": String(tubePosition === position),
+      "aria-label": info, title: info,
+      onclick: () => { flushTubeEdits(); selectTube(position); },
+    },
+    record ? h("span", { class: "tubeSlotHead" },
+      h("b", { text: position }),
+      h("i", { text: knownTubeCount(record.qty) ? String(record.qty) : ui("未知", "?") }))
+      : h("b", { text: position }),
+    spec ? h("span", { class: "tubeSlotValue", text: tubeValueLabel(spec) }) : null,
+    size ? h("span", { class: "tubeSlotSize", text: size }) : null);
+    grid.appendChild(slot);
+    if (focused === position) slot.focus({ preventScroll: true });
+  }
+  $("tubeSource").textContent = doc
+    ? [ui(`建议按 ${dataText(doc.title)} 的 C/R/L 与容量顺序摆位`, `Suggested layout follows ${dataText(doc.title)} C/R/L order by value`),
+      overflow ? ui(`${overflow} 种超出盒容量`, `${overflow} groups exceed the box`) : "",
+    ].filter(Boolean).join(" · ")
+    : tubeSuggestionFailed || (catalogFailed && !tubeSuggestionRequest) ? ui("无法载入建议 BOM，可手动登记。", "Could not load the suggested BOM; register manually.")
+    : ui("正在读取建议 BOM…", "Loading suggested BOM…");
+  $("tubeGridStatus").textContent = search
+    ? ui(`找到 ${visible} 个管位`, `${visible} matching tube positions`)
+    : [ui(`已登记 ${filled} 格`, `${filled} recorded`),
+      ui(`已确认数量 ${counted} 格`, `${counted} counted`),
+      ui(`建议 ${suggestions.size} 格`, `${suggestions.size} suggested`),
+      ui(`备用 ${TUBE_POSITIONS.length - filled - suggestions.size} 格`, `${TUBE_POSITIONS.length - filled - suggestions.size} spare`),
+    ].join(" · ");
+}
+
+function renderTubeSlotDetails() {
+  const record = tubeRecords[tubePosition];
+  if (record) {
+    $("tubeSlotDetails").textContent = knownTubeCount(record.qty)
+      ? ui(`已盘点 · ${tubeCount(record.qty)}`, `Counted · ${tubeCount(record.qty)}`)
+      : ui("已登记 · 数量未知", "Recorded · count unknown");
+    return;
+  }
+  const suggestion = makeTubePlan().suggestions.get(tubePosition);
+  $("tubeSlotDetails").textContent = suggestion
+    ? ui("建议 · 按 Enter 入库", "Suggested · press Enter to store")
+    : ui("空格 · 填规格后按 Enter 入库", "Empty · enter a specification, then press Enter");
+}
+
+const tubeFormSignature = () => JSON.stringify([
+  $("tubeKind").value, $("tubeSpec").value.trim(), $("tubeSize").value.trim(),
+  $("tubeLcsc").value.trim().toUpperCase(), $("tubeMpn").value.trim(), $("tubeSupplier").value.trim(),
+  $("tubeQuantity").value,
+]);
+
+function renderTubeSuppliers() {
+  const names = [...new Set(TUBE_POSITIONS.map((position) => tubeRecords[position]?.supplier).filter(Boolean))].sort();
+  $("tubeSuppliers").replaceChildren(...names.map((name) => h("option", { value: name })));
+}
+
+function renderTubeKindLabels() {
+  const kind = $("tubeKind");
+  const names = [ui("C · 电容", "C · Capacitor"), ui("R · 电阻", "R · Resistor"), ui("L · 电感", "L · Inductor")];
+  for (const [index, option] of [...kind.options].entries()) option.textContent = names[index];
+}
+
+/* 回车/方向键沿着「盒面顺序」走：已入库的和建议摆位的都算一站，真空格跳过。
+   这样按建议摆好一盒之后，可以从 A1 一路回车数到底。 */
+function tubeStepPositions() {
+  const { suggestions } = makeTubePlan();
+  return TUBE_POSITIONS.filter((position) => tubeRecords[position] || suggestions.has(position));
+}
+const nextTubePosition = (from) => {
+  const here = TUBE_POSITIONS.indexOf(from);
+  return tubeStepPositions().find((position) => TUBE_POSITIONS.indexOf(position) > here) || "";
+};
+const prevTubePosition = (from) => {
+  const here = TUBE_POSITIONS.indexOf(from);
+  return tubeStepPositions().reverse().find((position) => TUBE_POSITIONS.indexOf(position) < here) || "";
+};
+
+function selectTube(position, { focus = "auto" } = {}) {
+  tubePosition = position;
+  const record = tubeRecords[position];
+  // 空格按建议预填，人不用再敲规格；点已登记的格当然显示实物。
+  const suggestion = record ? null : makeTubePlan().suggestions.get(position);
+  tubeSelectedRecord = JSON.stringify(record);
+  $("tubePosition").textContent = position;
+  $("tubeKind").value = record?.kind || (suggestion ? TUBE_KINDS[suggestion.kind] : "C") || "C";
+  $("tubeSpec").value = record?.spec || suggestion?.spec || "";
+  $("tubeSize").value = record?.size || (suggestion ? suggestion.size || suggestion.fp : "") || "";
+  $("tubeLcsc").value = record?.lcsc || (suggestion && validLcsc(suggestion.lcsc || "") ? suggestion.lcsc : "");
+  $("tubeMpn").value = record?.mpn || "";
+  $("tubeSupplier").value = record?.supplier || "";
+  $("tubeQuantity").value = record?.qty ?? "";
+  $("tubeClear").hidden = !record;
+  $("tubeMessage").textContent = tubeStorageError ? ui("此浏览器无法读取已保存的管盒库存。", "Unable to read saved stock in this browser.") : "";
+  tubeBaseline = tubeFormSignature();
+  renderTubeGrid();
+  renderTubeSlotDetails();
+  const target = focus === "none" ? null : focus === "auto" ? (record ? $("tubeQuantity") : suggestion ? $("tubeQuantity") : $("tubeSpec")) : $(focus);
+  if (target) target.focus();
+}
+
+function saveTube({ advance = false } = {}) {
+  const feedback = $("tubeMessage");
+  const spec = $("tubeSpec").value.trim();
+  const size = $("tubeSize").value.trim();
+  const lcsc = $("tubeLcsc").value.trim().toUpperCase();
+  const mpn = $("tubeMpn").value.trim();
+  const supplier = $("tubeSupplier").value.trim();
+  const kind = $("tubeKind").value;
+  const rawQuantity = $("tubeQuantity").value;
+  const qty = rawQuantity === "" ? null : Number(rawQuantity);
+  if (!spec) {
+    feedback.textContent = ui("请先填写规格。", "Enter the specification first.");
+    $("tubeSpec").focus();
+    return false;
+  }
+  if (!size) {
+    feedback.textContent = ui("请先填写封装，备料时要靠它找管位。", "Enter the package first; pickup relies on it to find this tube.");
+    $("tubeSize").focus();
+    return false;
+  }
+  if (lcsc && !validLcsc(lcsc)) {
+    feedback.textContent = ui("LCSC 料号须以 C 开头，后面仅为数字。", "An LCSC number starts with C followed by digits.");
+    $("tubeLcsc").focus();
+    return false;
+  }
+  if (qty !== null && (!Number.isSafeInteger(qty) || qty < 0)) {
+    feedback.textContent = ui("请输入非负整数或留空。", "Enter a non-negative whole number or leave the count blank.");
+    $("tubeQuantity").focus();
+    return false;
+  }
+  const saved = tubePosition;
+  if (!writeTube({ kind, spec, size, lcsc, mpn, supplier, qty })) return false;
+  refreshTubeLocations();
+  renderTubeImport();
+  selectTube(saved);
+  feedback.textContent = ui(`已保存 ${saved}`, `Saved ${saved}`);
+  if (advance) {
+    const next = nextTubePosition(saved);
+    if (next) {
+      $("tubeFilter").value = "";
+      selectTube(next);
+      feedback.textContent = ui(`已保存 ${saved} · 下一管 ${next}`, `Saved ${saved} · next ${next}`);
+    } else {
+      feedback.textContent = ui(`已保存 ${saved} · 已是最后一管`, `Saved ${saved} · last tube`);
+    }
+  }
+  return true;
+}
+
+/* 按方向键换管时先把没提交的改动存下来，别让刚数的数量悄悄丢掉；
+   改动不合法就停在原处并说明原因。 */
+function flushTubeEdits() {
+  if (tubeFormSignature() === tubeBaseline) return true;
+  return saveTube();
+}
+
+function openTubeBox() {
+  refreshTubeStock();
+  loadTubeSuggestion();
+  if (!tubeRecords[tubePosition]) tubePosition = TUBE_POSITIONS.find((position) => tubeRecords[position]) || "A1";
+  $("tubeFilter").value = "";
+  renderTubeKindLabels();
+  selectTube(tubePosition, { focus: "none" });
+  renderTubeImport();
+  showTubePanel(false);
+  $("tubeBox").showModal();
+  $("tubeBox").scrollTop = 0;
+  // 有建议就等于已经知道放什么料，直接让人填数量。
+  const ready = tubeRecords[tubePosition] || makeTubePlan().suggestions.get(tubePosition);
+  (ready ? $("tubeQuantity") : $("tubeSpec")).focus();
+}
+
+const STOCK_CSV_FIELDS = {
+  kind: ["类型", "类别", "元件类型", "物料类别", "category", "type"],
+  model: ["规格", "型号", "型号/规格", "规格/型号", "值/规格", "型号规格", "model", "value", "specification", "comment"],
+  footprint: ["实际pcb封装", "pcb封装", "实际封装", "footprint", "pcbfootprint"],
+  package: ["封装", "采购封装", "package"],
+  lcsc: ["立创料号", "嘉立创料号", "立创编号", "嘉立创编号", "立创商城编号", "立创料号(历史参考)", "lcsc", "lcscpartnumber", "lcsccode"],
+  mpn: ["厂家料号", "料号", "确切料号", "制造商料号", "mpn", "manufacturerpartnumber", "partnumber"],
+  supplier: ["供料商", "供应商", "供货商", "商家", "店铺", "货源", "supplier", "vendor", "seller", "source"],
+  combined: ["品牌/型号", "品牌/料号", "参考品牌/确切料号"],
+  references: ["位号", "元件位号", "references", "refdes", "designator"],
+  location: ["管位", "实际管位", "管位编号", "管盒管位", "管盒位置", "管号", "存放管位", "tubelocation", "tubeslot"],
+};
+const STOCK_LOCAL_COUNT_HEADER = "本地库存";
+const STOCK_LOCAL_COUNTS = new RegExp(`^(?:${STOCK_LOCAL_COUNT_HEADER}(?:数量)?|实盘数量|盘点数量|实盘库存(?:数量)?|实际(?:可用)?库存(?:数量)?|onhand(?:quantity)?)$`);
+const STOCK_COUNTS = /^(?:库存(?:量|数量|余量)?|现有库存(?:数量)?|现有数量|当前(?:可用)?库存(?:量|数量)?|可用库存(?:数量)?|结存(?:数量)?|(?:current|available)?stock(?:quantity)?)$/;
+const csvLabel = (value) => value.normalize("NFKC").replace(/\s+/g, "").toLowerCase();
+
+const stockCsvTemplateHeaders = ["location", "kind", "model", "package", "lcsc", "mpn", "supplier"].map((field) => STOCK_CSV_FIELDS[field][0]);
+stockCsvTemplateHeaders.push(STOCK_LOCAL_COUNT_HEADER);
+$("tubeImportTemplate").href = "data:text/csv;charset=utf-8," + encodeURIComponent(`\uFEFF${stockCsvTemplateHeaders.join(",")}\r\n`);
+
+function readCsvRecords(text) {
+  const records = [];
+  let cells = [];
+  let value = "";
+  let quoted = false;
+  let closed = false;
+  let line = 1;
+  let rowLine = 1;
+  const finishCell = () => {
+    cells.push(value.trim());
+    value = "";
+    closed = false;
+  };
+  const finishRow = () => {
+    finishCell();
+    if (cells.some(Boolean)) records.push({ cells, line: rowLine });
+    cells = [];
+    rowLine = line + 1;
+  };
+  const invalid = () => new Error(ui(`CSV 引号格式无效（第 ${line} 行）。`, `Invalid CSV quoting (line ${line}).`));
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index];
+    const newline = char === "\n" || char === "\r";
+    if (quoted) {
+      if (char === '"') {
+        if (text[index + 1] === '"') {
+          value += '"';
+          index++;
+        } else {
+          quoted = false;
+          closed = true;
+        }
+      } else {
+        value += newline ? "\n" : char;
+      }
+    } else if (char === ",") finishCell();
+    else if (newline) finishRow();
+    else if (char === '"' && !value && !closed) quoted = true;
+    else if (char === '"' || closed) throw invalid();
+    else value += char;
+    if (newline) {
+      if (char === "\r" && text[index + 1] === "\n") index++;
+      line++;
+    }
+  }
+  if (quoted) throw invalid();
+  finishRow();
+  return records;
+}
+
+function stockCsvKind(category, model, references) {
+  const types = new Set();
+  const explicit = [
+    /^(?:c|(?:贴片|电源-)?电容|capacitor|mlcc)$/,
+    /^(?:r|(?:贴片|电源-)?电阻|resistor)$/,
+    /^(?:l|(?:贴片|电源-|电源-升压)?电感|inductor)$/,
+  ].findIndex((pattern) => pattern.test(csvLabel(category)));
+  if (explicit >= 0) types.add("CRL"[explicit]);
+  const unit = model.normalize("NFKC").match(/^\d+(?:\.\d+)?\s*[fpnµμumkMG]?\s*(f|ω|ohms?|h)(?=\s|$|[±(])/i)?.[1].toLowerCase();
+  if (unit) types.add(unit === "f" ? "C" : unit === "h" ? "L" : "R");
+  const refs = references.toUpperCase().split(/[,;、\s]+/).filter(Boolean);
+  if (refs.length && refs.every((ref) => /^[CRL]\d+$/.test(ref) && ref[0] === refs[0][0])) types.add(refs[0][0]);
+  return types.size === 1 ? [...types][0] : "";
+}
+
+function parseStockCsv(text) {
+  if (text.includes("\uFFFD")) throw new Error(ui("请将库存文件保存为 UTF-8 CSV。", "Save the stock file as UTF-8 CSV."));
+  const records = readCsvRecords(text.replace(/^\uFEFF/, ""));
+  for (const [index, { cells, line }] of records.slice(0, 50).entries()) {
+    const labels = cells.map(csvLabel);
+    const columns = Object.fromEntries(Object.entries(STOCK_CSV_FIELDS).map(([field, aliases]) =>
+      [field, labels.findIndex((label) => aliases.includes(label))]));
+    if (![columns.model, columns.mpn, columns.lcsc, columns.combined].some((column) => column >= 0)) continue;
+    const supplier = labels.includes("当前单价") && labels.includes("候选库存");
+    const countLabels = labels.map((label) => label.replace(/\((?:颗|只|个|件|pcs?)\)$/, ""));
+    const local = [];
+    const stock = [];
+    const generic = [];
+    const placeholders = [];
+    for (const [column, label] of countLabels.entries()) {
+      if (STOCK_LOCAL_COUNTS.test(label)) local.push(column);
+      else if (!supplier && STOCK_COUNTS.test(label)) stock.push(column);
+      else if (!supplier && columns.location >= 0 && /^(?:数量|quantity|qty)$/.test(label)) generic.push(column);
+      else if (label.endsWith("(待填)") && STOCK_LOCAL_COUNTS.test(label.slice(0, -4))) placeholders.push(column);
+    }
+    const candidates = [local, stock, generic, placeholders].find((set) => set.length);
+    if (!candidates) continue;
+    if (candidates.length > 1) {
+      throw new Error(ui(`第 ${line} 行有多个实际库存列，请保留一个明确的库存列。`, `Line ${line} has several actual-stock columns. Keep one identifiable column.`));
+    }
+    return records.slice(index + 1).flatMap(({ cells: values, line: row }) => {
+      if (values.length !== cells.length) {
+        throw new Error(ui(`CSV 第 ${row} 行的列数与表头不一致。`, `CSV line ${row} has a different number of columns from the header.`));
+      }
+      const field = (name) => values[columns[name]] || "";
+      const lcsc = field("lcsc").toUpperCase();
+      const model = field("model");
+      const combined = field("combined").split(/[（(；;，,]/, 1)[0].trim().split(/\s+/);
+      const token = combined.at(-1);
+      const mpn = field("mpn") || (/^(?=.*[a-z])(?=.*\d)[a-z0-9_+./-]+$/i.test(token) ? token : "");
+      if (!model && !lcsc && !mpn) return [];
+      const location = field("location").toUpperCase();
+      const count = values[candidates[0]].normalize("NFKC");
+      const number = count.match(/^([0-9]+|[0-9]{1,3}(?:,[0-9]{3})+)(?:\.0+)?\s*(?:颗|只|个|件|pcs?)?$/i);
+      const parsed = number ? Number(number[1].replaceAll(",", "")) : null;
+      const quantityReason = candidates === generic && !TUBE_POSITIONS.includes(location) ? "position"
+        : !count ? "blank" : !knownTubeCount(parsed) ? "invalid"
+        : candidates === placeholders && parsed === 0 ? "placeholder_zero" : "";
+      return [{ row, model, mpn, lcsc, supplier: field("supplier"), location,
+        footprint: field("footprint") || field("package"),
+        kind: stockCsvKind(field("kind"), model, field("references")),
+        quantity: quantityReason ? null : parsed, quantityReason }];
+    });
+  }
+  throw new Error(ui("未找到含物料信息的实际库存列。", "No actual-stock column with part information was found."));
+}
+
+let tubeImportRows = null;
+let tubeImportRequest = null;
+let tubeImportError = "";
+let tubeImportNotice = null;
+let tubeImportConfirmation = null;
+
+async function readTubeImport() {
+  tubeImportError = "";
+  tubeImportNotice = null;
+  tubeImportConfirmation = null;
+  tubeImportRows = null;
+  const file = $("tubeImportFile").files[0];
+  const request = file ? {} : null;
+  tubeImportRequest = request;
+  renderTubeImport();
+  if (!file) return;
+  try {
+    if (!/\.csv$/i.test(file.name)) throw new Error(ui("请选择 UTF-8 CSV 文件。", "Choose a UTF-8 CSV file."));
+    const text = await file.text();
+    if (tubeImportRequest === request) tubeImportRows = parseStockCsv(text);
+  } catch (error) {
+    if (tubeImportRequest === request) tubeImportError = error.message;
+  } finally {
+    if (tubeImportRequest === request) {
+      tubeImportRequest = null;
+      renderTubeImport();
+    }
+  }
+}
+
+function sameImportedTube(row, record) {
+  if (!record || row.kind !== record.kind) return false;
+  if (row.lcsc && record.lcsc && row.lcsc !== record.lcsc) return false;
+  if (row.mpn && record.mpn && !row.lcsc && tubeIdentityText(row.mpn) !== tubeIdentityText(record.mpn)) return false;
+  const specMatches = tubeIdentityText(row.model) === tubeIdentityText(record.spec);
+  const sizeMatches = tubeIdentityText(row.footprint) === tubeIdentityText(record.size);
+  const sameLcsc = validLcsc(row.lcsc) && row.lcsc === record.lcsc;
+  const sameMpn = Boolean(row.mpn && record.mpn) && tubeIdentityText(row.mpn) === tubeIdentityText(record.mpn);
+  if (sameLcsc || sameMpn) return (!row.model || specMatches) && (!row.footprint || sizeMatches);
+  if (row.lcsc || row.mpn) return false;
+  return Boolean(row.model && row.footprint) && specMatches && sizeMatches;
+}
+
+function planTubeImport(rows) {
+  const identities = new Map();
+  const previews = rows.map((row) => {
+    const { kind, lcsc, location: entered } = row;
+    const stockMatches = TUBE_POSITIONS.filter((position) => sameImportedTube(row, tubeRecords[position]));
+    const stockPosition = stockMatches.length === 1 ? stockMatches[0] : "";
+    const identity = lcsc || (row.mpn && tubeIdentityText(row.mpn))
+      || [kind, tubeIdentityText(row.model), tubeIdentityText(row.footprint)].join("/");
+    identities.set(identity, (identities.get(identity) || 0) + 1);
+    const position = entered || stockPosition;
+    return { row, entered, position, kind, identity, stockMatches,
+      stockConflict: Boolean(position && tubeRecords[position] && !stockMatches.includes(position)),
+      sameIdentifierConflict: !position && !stockMatches.length && Object.values(tubeRecords).some((record) =>
+        validLcsc(lcsc) && lcsc === record?.lcsc || row.mpn && tubeIdentityText(row.mpn) === tubeIdentityText(record?.mpn)),
+      multipleStockMatches: !entered && stockMatches.length > 1,
+      auto: false, full: false };
+  });
+  // 没有指定管位的行按出现顺序放进空位；不依赖任何一块板的 BOM。
+  const taken = new Set(previews.filter(({ position }) => position).map(({ position }) => position));
+  const pending = previews.filter(({ row, position, kind, identity, stockConflict, sameIdentifierConflict, multipleStockMatches }) =>
+    !position && kind && row.model && knownTubeCount(row.quantity)
+    && !stockConflict && !sameIdentifierConflict && !multipleStockMatches && identities.get(identity) === 1);
+  const free = TUBE_POSITIONS.filter((position) => !tubeRecords[position] && !taken.has(position));
+  for (const [index, preview] of pending.entries()) {
+    preview.position = free[index] || "";
+    preview.auto = Boolean(preview.position);
+    preview.full = !preview.auto;
+  }
+  return previews.map((preview) => ({ ...preview, duplicate: identities.get(preview.identity) > 1,
+    validPosition: TUBE_POSITIONS.includes(preview.position) }));
+}
+
+function applyTubeImport(changes, previewedStock) {
+  tubeImportConfirmation = null;
+  const status = $("tubeImportStatus");
+  try {
+    const records = readTubes();
+    if (JSON.stringify(records) !== previewedStock) {
+      tubeRecords = records;
+      tubeImportNotice = { changed: true };
+      renderTubeGrid();
+      renderTubeSlotDetails();
+      renderTubeImport();
+      return;
+    }
+    for (const [position, record] of changes) records[position] = record;
+    localStorage.setItem(TUBE_KEY, JSON.stringify(records));
+    tubeRecords = records;
+    tubeStorageError = false;
+  } catch (error) {
+    renderTubeImport();
+    status.textContent = ui("无法导入。请检查浏览器对此站点的存储权限。", "Unable to import. Check this site's storage permission.");
+    return;
+  }
+  if (changes.has(tubePosition)) selectTube(tubePosition);
+  else renderTubeGrid();
+  tubeImportNotice = { imported: changes.size };
+  renderTubeImport();
+  refreshTubeLocations();
+}
+
+function renderTubeImport() {
+  const rows = $("tubeImportRows");
+  clear(rows);
+  const status = $("tubeImportStatus");
+  const apply = $("tubeImportApply");
+  const confirm = $("tubeImportConfirm");
+  const cancel = $("tubeImportCancel");
+  apply.hidden = true;
+  apply.onclick = null;
+  confirm.hidden = true;
+  confirm.onclick = null;
+  cancel.hidden = true;
+  if (!tubeImportRows) {
+    status.textContent = tubeImportRequest ? ui("正在读取库存文件…", "Reading stock file…")
+      : tubeImportError ? ui(`无法读取库存文件。${tubeImportError}`, `Could not read stock file. ${tubeImportError}`) : "";
+    return;
+  }
+  const previews = planTubeImport(tubeImportRows);
+  const locations = new Map();
+  const changes = new Map();
+  for (const { position, validPosition } of previews) {
+    if (validPosition) locations.set(position, (locations.get(position) || 0) + 1);
+  }
+  const unknownCounts = previews.filter(({ row }) => row.quantity === null).length;
+  status.textContent = [
+    tubeImportNotice?.changed ? ui("库存已变化，请重新核对。", "Stock changed. Review again.") : "",
+    tubeImportNotice?.imported ? ui(`已导入 ${tubeImportNotice.imported} 条`, `Imported ${tubeImportNotice.imported} rows`) : "",
+    ui(`${previews.length} 行待核对`, `${previews.length} rows to review`),
+    unknownCounts ? ui(`${unknownCounts} 行数量未知`, `${unknownCounts} with unknown counts`) : "",
+  ].filter(Boolean).join(" · ");
+  for (const { row, entered, position, validPosition, kind, duplicate, stockConflict,
+    sameIdentifierConflict, multipleStockMatches, auto, full } of previews) {
+    const stock = validPosition ? tubeRecords[position] : null;
+    const where = !position ? ui("无管位", "No position")
+      : entered ? ui(`表中管位 ${position}`, `CSV position ${position}`)
+      : stock ? ui(`已有管位 ${position}`, `Recorded position ${position}`)
+      : auto ? ui(`自动分配 ${position}`, `Assigned ${position}`)
+      : ui(`分配管位 ${position}`, `Position ${position}`);
+    const reason = {
+      blank: ui("数量栏为空", "Count field is blank"),
+      invalid: ui("数量格式无效", "Invalid count format"),
+      position: ui("通用数量须绑定明确管位", "A generic quantity needs an explicit position"),
+      placeholder_zero: ui("待填栏的占位零", "Placeholder zero in field awaiting stock count"),
+    }[row.quantityReason];
+    const qty = row.quantity === null ? [tubeCount(null), reason].filter(Boolean).join(" · ") : tubeCount(row.quantity);
+    const issue = position && !validPosition ? ui("管位超出 A1–J10", "Position is outside A1–J10")
+      : locations.get(position) > 1 ? ui("多行指向同一管位", "Multiple rows point to this position")
+      : full ? ui("已无空管位，请在 CSV 指定管位", "No free position left; supply one in the CSV")
+      : !kind ? ui("待核对元件类型", "Check the part type")
+      : row.lcsc && !validLcsc(row.lcsc) ? ui("立创料号格式无效", "Invalid LCSC part number")
+      : stockConflict ? ui("已有不同物料，请核对", "Different part already recorded")
+      : sameIdentifierConflict ? ui("同料号的已有记录需核对", "Review the existing record with the same part number")
+      : multipleStockMatches ? ui("同料已有多个管位，请在 CSV 指定管位", "Part is in multiple tubes. Supply the position in the CSV")
+      : duplicate && !entered ? ui("同一物料出现多次，请核对", "Repeated part identity, verify the rows")
+      : stock && row.quantity === null ? ui("保留已有数量", "Keep the recorded count")
+      : "";
+    const current = stock && !stockConflict ? ui(`现有 ${tubeCount(stock.qty)}`, `Recorded: ${tubeCount(stock.qty)}`) : "";
+    const text = [ui(`第 ${row.row} 行`, `Line ${row.row}`), row.model, row.footprint, row.mpn, row.lcsc, row.supplier, where, qty, current, issue].filter(Boolean).join(" · ");
+    const canFill = !issue && validPosition && knownTubeCount(row.quantity) && Boolean(stock || row.model || row.mpn);
+    const spec = (row.model || row.mpn).replace(/[\r\n]+/g, " ");
+    if (canFill && stock?.qty !== row.quantity) {
+      // 供料商是采购信息：CSV 里填了就更新，没填就保留原来记的。
+      const supplier = row.supplier || stock?.supplier || "";
+      changes.set(position, stock ? { ...stock, qty: row.quantity, supplier } : {
+        kind, spec, size: row.footprint, lcsc: row.lcsc, mpn: row.mpn, supplier, qty: row.quantity,
+      });
+    }
+    rows.appendChild(h("li", {}, h("p", { class: "tubeHelp", text }),
+      canFill ? h("button", {
+        type: "button", class: "act", text: stock ? ui("核对并更新数量", "Review count update") : ui("带入盘点表单", "Use in stock form"),
+        onclick: () => {
+          const before = JSON.stringify(stock || undefined);
+          refreshTubeStock();
+          if (tubeStorageError || JSON.stringify(tubeRecords[position]) !== before) {
+            renderTubeGrid();
+            renderTubeImport();
+            status.textContent += ui(" · 库存已变化或无法读取，请重新核对。", " · Stock changed or could not be read. Review again.");
+            return;
+          }
+          $("tubeFilter").value = "";
+          selectTube(position);
+          if (!stock) {
+            $("tubeKind").value = kind;
+            $("tubeSpec").value = spec;
+            $("tubeSize").value = row.footprint;
+            $("tubeMpn").value = row.mpn;
+            $("tubeLcsc").value = row.lcsc;
+          }
+          if (row.supplier) $("tubeSupplier").value = row.supplier;
+          $("tubeQuantity").value = row.quantity;
+          $("tubeQuantity").focus();
+        },
+      }) : null));
+  }
+  if (tubeImportConfirmation) {
+    const { changes, previewedStock } = tubeImportConfirmation;
+    confirm.textContent = ui(`确认导入 ${changes.size} 条`, `Confirm import of ${changes.size} rows`);
+    confirm.hidden = false;
+    confirm.onclick = () => applyTubeImport(changes, previewedStock);
+    cancel.hidden = false;
+  } else if (changes.size) {
+    const previewedStock = JSON.stringify(tubeRecords);
+    apply.textContent = ui(`导入 ${changes.size} 条`, `Import ${changes.size} rows`);
+    apply.hidden = false;
+    apply.onclick = () => {
+      tubeImportConfirmation = { changes, previewedStock };
+      renderTubeImport();
+      confirm.focus();
+    };
+  }
+}
+
+function refreshTubeLocations() {
+  if (!DOC) return;
+  render(true);
+  if ($("prepSheet").classList.contains("on")) renderPrep(true);
+  if ($("swap").classList.contains("on")) renderSwap(FLAT[cursor].group);
+}
+
+$("btnTubePicker").addEventListener("click", () => openTubeBox());
+$("tubeClose").addEventListener("click", () => $("tubeBox").close());
+$("tubeBox").addEventListener("close", refreshTubeLocations);
+$("tubeFilter").addEventListener("input", renderTubeGrid);
+$("tubeImportFile").addEventListener("change", () => readTubeImport());
+$("tubeImportCancel").addEventListener("click", () => {
+  tubeImportConfirmation = null;
+  renderTubeImport();
+  $("tubeImportApply").focus();
+});
+$("tubeForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  saveTube({ advance: true });
+});
+// ←/→ 在数量框和管位格上换管；文本输入框里保留光标移动。
+$("tubeBox").addEventListener("keydown", (event) => {
+  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+  const target = event.target;
+  if (target.matches("select,input,textarea") && target.id !== "tubeQuantity") return;
+  event.preventDefault();
+  // 换管永远不被校验拦住：能存就存，不能存（半填的无效内容）就丢掉走人。
+  flushTubeEdits();
+  const next = event.key === "ArrowRight" ? nextTubePosition(tubePosition) : prevTubePosition(tubePosition);
+  if (!next) {
+    $("tubeMessage").textContent = event.key === "ArrowRight"
+      ? ui("已是最后一个管位。", "This is the last tube.")
+      : ui("已是第一个管位。", "This is the first tube.");
+    return;
+  }
+  $("tubeFilter").value = "";
+  selectTube(next);
+});
+$("tubeClear").addEventListener("click", () => {
+  if (!confirm(ui(`清空 ${tubePosition} 的库存记录？`, `Clear stock recorded for ${tubePosition}?`))) return;
+  if (writeTube(null)) {
+    refreshTubeLocations();
+    renderTubeImport();
+    selectTube(tubePosition);
+    $("tubeMessage").textContent = ui(`已清空 ${tubePosition}`, `Cleared ${tubePosition}`);
+  }
+});
+window.addEventListener("storage", (event) => {
+  if (event.key !== TUBE_KEY && event.key !== null) return;
+  refreshTubeStock();
+  if ($("tubeBox").open) {
+    renderTubeSlotDetails();
+    renderTubeGrid();
+    renderTubeImport();
+    if (!$("tubePrintPanel").hidden) renderTubePrint();
+  }
+  refreshTubeLocations();
+});
+
+// Three paper layouts use the same physical positions and counted stock.
+const TUBE_PRINT_SIZES = {
+  paper: { width: "400", height: "400", tiled: false },
+  lid: { width: "400", height: "400", tiled: false },
+  labels: { width: "", height: "", tiled: false },
+};
+const TUBE_MEDIA = [
+  { name: "A4", short: 210, long: 297 },
+  { name: "A3", short: 297, long: 420 },
+  { name: "A2", short: 420, long: 594 },
+  { name: "A1", short: 594, long: 841 },
+  { name: "A0", short: 841, long: 1189 },
+];
+const TUBE_MARGIN = 4;
+const TUBE_LABEL_GAP = 2;
+let tubePrintMode = "paper";
+let tubePrintLayout = null;
+
+function showTubePanel(print) {
+  $("tubeStock").hidden = print;
+  $("tubePrintPanel").hidden = !print;
+  $("tubeShowStock").setAttribute("aria-pressed", String(!print));
+  $("tubeShowPrint").setAttribute("aria-pressed", String(print));
+  if (print) {
+    renderTubePrintOptions();
+    renderTubePrint();
+  }
+}
+
+function renderTubePrintOptions() {
+  const select = $("tubePrintMode");
+  const names = [ui("盒顶普通纸索引", "Lid index on plain paper"), ui("盒顶贴纸索引", "Lid index on adhesive paper"), ui("单管贴纸", "Individual tube labels")];
+  for (const [i, option] of [...select.options].entries()) option.textContent = names[i];
+  $("tubePreview").setAttribute("aria-label", ui("打印预览", "Print preview"));
+  $("tubePrintWidth").value = TUBE_PRINT_SIZES[tubePrintMode].width;
+  $("tubePrintHeight").value = TUBE_PRINT_SIZES[tubePrintMode].height;
+  $("tubePrintTiled").checked = TUBE_PRINT_SIZES[tubePrintMode].tiled;
+  $("tubeTiledField").hidden = tubePrintMode === "labels";
+}
+
+function makeTubePrintLayout() {
+  const { tiled, width: rawWidth, height: rawHeight } = TUBE_PRINT_SIZES[tubePrintMode];
+  const width = Number(rawWidth);
+  const height = Number(rawHeight);
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width < 1 || height < 1) return { error: ui("输入大于或等于 1 mm 的宽度和高度。", "Enter a width and height of at least 1 mm.") };
+
+  const labels = tubePrintMode === "labels";
+  const cellWidth = labels ? width : width / 10;
+  const cellHeight = labels ? height : height / 10;
+  const a4 = TUBE_MEDIA[0];
+  const maxWidth = a4.long - 2 * TUBE_MARGIN;
+  const maxHeight = a4.short - 2 * TUBE_MARGIN;
+  let page = { name: a4.name, width: a4.long, height: a4.short };
+  const blocks = [];
+  if (labels) {
+    const filled = TUBE_POSITIONS.filter((position) => tubeRecords[position]);
+    if (!filled.length) return { error: ui("先登记至少一个管位。", "Log at least one tube before printing labels.") };
+    const cols = Math.min(filled.length, Math.floor((maxWidth + TUBE_LABEL_GAP) / (width + TUBE_LABEL_GAP)));
+    const rows = Math.floor((maxHeight + TUBE_LABEL_GAP) / (height + TUBE_LABEL_GAP));
+    if (!cols || !rows) return { error: ui("单管贴纸超出 A4 可打印范围（289 × 202 mm）。", "A label exceeds the A4 layout area (289 × 202 mm).") };
+    for (let start = 0; start < filled.length; start += cols * rows) {
+      const positions = filled.slice(start, start + cols * rows);
+      blocks.push({ columns: cols, positions });
+    }
+  } else {
+    let cols = 10, rows = 10;
+    if (tiled) {
+      const maxCols = Math.floor(maxWidth / cellWidth);
+      const maxRows = Math.floor(maxHeight / cellHeight);
+      if (!maxCols || !maxRows) return { error: ui("单个格子已超出 A4 可打印范围。", "A single box cell exceeds the A4 layout area.") };
+      cols = Math.ceil(10 / Math.ceil(10 / maxCols));
+      rows = Math.ceil(10 / Math.ceil(10 / maxRows));
+    } else {
+      const medium = TUBE_MEDIA.find(({ short, long }) => Math.min(width, height) <= short - 2 * TUBE_MARGIN && Math.max(width, height) <= long - 2 * TUBE_MARGIN);
+      if (!medium) return { error: ui("索引超出整张 A0 的排版范围。可选择 A4 实寸拼接。", "The index exceeds the single-sheet A0 layout area. Use A4 actual-size tiling.") };
+      const landscape = width > height;
+      page = { name: medium.name, width: landscape ? medium.long : medium.short, height: landscape ? medium.short : medium.long };
+    }
+    for (let row = 0; row < 10; row += rows) {
+      for (let col = 0; col < 10; col += cols) {
+        const columns = Math.min(cols, 10 - col);
+        const positions = [];
+        for (let y = row; y < Math.min(row + rows, 10); y++) {
+          positions.push(...TUBE_POSITIONS.slice(y * 10 + col, y * 10 + col + columns));
+        }
+        blocks.push({ columns, positions });
+      }
+    }
+  }
+  return { blocks, cellWidth, cellHeight, labels, page };
+}
+
+function makeTubePrintPage(layout, block) {
+  const grid = h("div", { class: "tubePrintPage" + (layout.labels ? " tubePrintLabels" : "") });
+  const { suggestions } = makeTubePlan();
+  grid.style.setProperty("--tube-columns", block.columns);
+  grid.style.setProperty("--tube-cell-width", `${layout.cellWidth}mm`);
+  grid.style.setProperty("--tube-cell-height", `${layout.cellHeight}mm`);
+  if (layout.labels) grid.style.setProperty("--tube-cell-gap", `${TUBE_LABEL_GAP}mm`);
+  for (const position of block.positions) {
+    const record = tubeRecords[position];
+    const suggestion = record ? null : suggestions.get(position);
+    const spec = record?.spec || suggestion?.spec || "";
+    const kind = record?.kind || (suggestion ? TUBE_KINDS[suggestion.kind] : "");
+    const size = record?.size || (suggestion ? suggestion.size || suggestion.fp : "") || "";
+    // 盒顶纸按默认建议摆位印：空格也印出该格该放什么料，只留类型、封装、容量
+    grid.appendChild(h("div", { class: "tubePrintCell", "data-position": position },
+      h("b", { class: "tubePrintCode", text: position }),
+      spec ? h("span", { class: "tubePrintValue", text: tubeValueLabel(spec) }) : null,
+      kind || size ? h("span", { class: "tubePrintMeta", text: [kind, size].filter(Boolean).join(" · ") }) : null));
+  }
+  return grid;
+}
+
+function renderTubePrint() {
+  const preview = $("tubePreview");
+  clear(preview);
+  tubePrintLayout = makeTubePrintLayout();
+  const { error, blocks, labels, page } = tubePrintLayout;
+  $("tubeDoPrint").disabled = Boolean(error);
+  if (error) {
+    $("tubePrintWarning").textContent = error;
+    return;
+  }
+  const paper = `${page.name} · ${page.width} × ${page.height} mm`;
+  $("tubePrintWarning").textContent = labels
+    ? ui(`${paper} · ${blocks.length} 页 · 贴纸之间预留 2 mm 裁切间距。`, `${paper} · ${blocks.length} page(s) · 2 mm cutting gap between labels.`)
+    : ui(`${paper} · ${blocks.length} 页 · 按管位坐标拼接分页，沿格子外框裁切。`, `${paper} · ${blocks.length} page(s) · Join tiles by their coordinates and trim along the outer grid borders.`);
+  for (const [index, block] of blocks.entries()) {
+    const range = `${block.positions[0]}–${block.positions[block.positions.length - 1]}`;
+    preview.appendChild(h("figure", { class: "tubePreviewPaper" },
+      h("figcaption", { text: `${index + 1} / ${blocks.length} · ${range}` }),
+      makeTubePrintPage(tubePrintLayout, block)));
+  }
+  const clipped = [...preview.querySelectorAll(".tubePrintCell")].filter((cell) =>
+    cell.scrollHeight > cell.clientHeight || cell.scrollWidth > cell.clientWidth);
+  if (clipped.length) {
+    for (const cell of clipped) cell.dataset.overflow = "";
+    const positions = clipped.map((cell) => cell.firstElementChild.textContent).join(ui("、", ", "));
+    $("tubePrintWarning").textContent += ui(` 以下管位的文字放不下，请调大尺寸后再印：${positions}。`, ` Enlarge the layout before printing. The text does not fit in: ${positions}.`);
+    $("tubeDoPrint").disabled = true;
+  }
+  fitTubePrintPreview();
+}
+
+function fitTubePrintPreview() {
+  if (tubePrintLayout?.error || tubePrintLayout?.labels || $("tubePrintPanel").hidden) return;
+  for (const grid of $("tubePreview").querySelectorAll(".tubePrintPage")) {
+    const available = grid.parentElement.clientWidth - 24;
+    if (available <= 0) continue;
+    const columns = Number(grid.style.getPropertyValue("--tube-columns"));
+    const pixels = columns * tubePrintLayout.cellWidth * 96 / 25.4;
+    grid.style.zoom = Math.min(1, available / pixels);
+  }
+}
+
+$("tubeShowStock").addEventListener("click", () => showTubePanel(false));
+$("tubeShowPrint").addEventListener("click", () => showTubePanel(true));
+$("tubePrintMode").addEventListener("change", (event) => {
+  tubePrintMode = event.target.value;
+  renderTubePrintOptions();
+  renderTubePrint();
+});
+for (const [id, key, attribute] of [["tubePrintWidth", "width", "value"], ["tubePrintHeight", "height", "value"], ["tubePrintTiled", "tiled", "checked"]]) {
+  $(id).addEventListener("input", (event) => {
+    TUBE_PRINT_SIZES[tubePrintMode][key] = event.target[attribute];
+    renderTubePrint();
+  });
+}
+window.addEventListener("resize", fitTubePrintPreview);
+$("tubeDoPrint").addEventListener("click", () => {
+  if (!tubePrintLayout || tubePrintLayout.error) return;
+  const { page, blocks } = tubePrintLayout;
+  $("tubePrint").replaceChildren(...blocks.map((block) => makeTubePrintPage(tubePrintLayout, block)));
+  let mediaRule = $("tubePrintMedia");
+  if (!mediaRule) {
+    mediaRule = h("style", { id: "tubePrintMedia" });
+    document.head.appendChild(mediaRule);
+  }
+  mediaRule.textContent = `@page tube-box { size: ${page.width}mm ${page.height}mm; margin: ${TUBE_MARGIN}mm; }`;
+  document.body.classList.add("printingTubes");
+  window.print();
+});
+window.addEventListener("afterprint", () => document.body.classList.remove("printingTubes"));
+
 // ── 版本选择 ────────────────────────────────────────────────
 function renderCatalog() {
   const box = $("cards");
   clear(box);
   if (catalogFailed) {
     box.appendChild(h("div", { class: "err", text: ui(
-      "读不到 data/index.json。请通过 HTTP 打开页面。在项目根目录运行 python3 -m http.server 8000 --bind 127.0.0.1，然后打开 http://localhost:8000/。",
-      "Cannot load data/index.json. Serve this page over HTTP: run python3 -m http.server 8000 --bind 127.0.0.1 in the project root, then open http://localhost:8000/.") }));
+      "读不到 data/index.json。请检查页面和 data 目录是否由同一个站点提供。",
+      "Cannot load data/index.json. Check that the page and its data directory are served by the same site.") }));
     return;
   }
   for (const v of catalog || []) {
@@ -774,7 +2017,15 @@ function renderCatalog() {
   }
 }
 fetchData("data/index.json").then((r) => { if (!r.ok) throw new Error("index"); return r.json(); })
-  .then((list) => { catalog = list; if (language === "en") setLanguage("en"); else renderCatalog(); })
+  .then((list) => {
+    catalog = list;
+    if ($("tubeBox").open) loadTubeSuggestion();
+    if (language === "en") setLanguage("en");
+    else {
+      renderCatalog();
+      if ($("tubeBox").open) renderTubeKindLabels();
+    }
+  })
   .catch(() => { catalogFailed = true; renderCatalog(); });
 
 /* 采购批次：一个工作表 = 一批料。这是个人数据，单独一个 gitignore 的文件，
@@ -791,14 +2042,33 @@ function batchOf(group) {
   return (v && v[group.key]) || null;
 }
 
-// 料位号 = 贴片顺序（第几种要贴的料：芯片 → 连接器 → … → 电阻）。
-// 桌面照「打印配料纸」的格子摆料，格号即**消耗顺序**——越贴越空、不回头。
-// 拉料备料时在网页备料卡片上能看到每组的料位号，照号入格。
-const slotOf = (g) => String(DOC.groups.indexOf(g) + 1).padStart(2, "0");
+// 只读取规格开头的标称值，避免把容差、耐压、DCR 或 SRF 当作摆盘值。
+function nominalValue(group) {
+  const spec = (group.spec || "").trim();
+  const kind = TUBE_KINDS[group.kind];
+  const match = kind === "R" ? /^(\d+(?:\.\d+)?)\s*([mkKMG]?)\s*[ΩR]?(?=$|\s|[±(])/.exec(spec)
+    : /^(\d+(?:\.\d+)?)\s*([fpnµμumkM]?)([FH])(?=$|\s|[±(])/.exec(spec);
+  if (!match || kind === "C" && match[3] !== "F" || kind === "L" && match[3] !== "H") return Infinity;
+  const exponent = { "": 0, f: -15, p: -12, n: -9, "µ": -6, "μ": -6, u: -6, m: -3, k: 3, K: 3, M: 6, G: 9 }[match[2]];
+  return Number(`${match[1]}e${exponent}`);
+}
+
+function orderForPlacement(groups) {
+  const ordinary = groups.filter((group) => !TUBE_KINDS[group.kind]);
+  const passives = ["C", "R", "L"].flatMap((kind) =>
+    groups.filter((group) => TUBE_KINDS[group.kind] === kind)
+      .map((group) => ({ group, value: nominalValue(group) }))
+      .sort((a, b) => a.value - b.value)
+      .map(({ group }) => group));
+  return [...ordinary, ...passives];
+}
+
+const slotOf = (g) => String(placementGroups.indexOf(g) + 1).padStart(2, "0");
 
 function load(id) {
   fetchData(`data/${id}.json`).then((r) => r.json()).then((doc) => {
     DOC = doc;
+    placementGroups = orderForPlacement(doc.groups);
     if (language === "en" && !languageDataAvailable(doc)) setLanguage("en");
     FLAT = [];
     doc.groups.forEach((g, gi) => g.parts.forEach((p, pi) =>
@@ -1121,6 +2391,7 @@ function render(displayOnly = false) {
   // 问号，看着像出错了；这类值当空处理。
   const noteText = (g.note || "").trim();
   $("specNote").textContent = /^[?？—\-–\s]*$/.test(noteText) ? "" : dataText(noteText);
+  $("specTube").replaceChildren(...[renderTubePickup(g)].filter(Boolean));
 
   clear($("qtyNum"));
   $("qtyNum").appendChild(document.createTextNode(String(g.qty - gDone)));
@@ -1202,6 +2473,7 @@ function renderSwap(g) {
   $("swapSize").textContent = g.size || "";
   // 中途跳回来时按「还要贴几颗」算，不是组的总数——照总数备料会多拿
   $("swapQty").textContent = left;
+  $("swapTube").replaceChildren(...[renderTubePickup(g)].filter(Boolean));
 
   // 批次排最前：换料时第一件事是去翻哪一袋料
   const b = batchOf(g);
@@ -1553,26 +2825,17 @@ $("btnReset").addEventListener("click", resetAll);
 $("btnClose").addEventListener("click", closeSheet);
 
 // ── 备料清单 ────────────────────────────────────────────────
-// 开工前照单拿料：按「批次 → 位号编号」排。同一批的料一次拿完，批内按
-// 编号排，桌面照清单顺序摆——贴的时候只看换料卡，不用再回料架找。
+// 开工前照摆盘顺序取料，卡片保留批次和位号供核对。
 // 勾选独立于贴片进度存 localStorage；贴完一块板点「清空备料」再来下一块。
 function prepSortedGroups() {
-  const nat = (r) => { const m = /^([A-Za-z]+)(\d+)/.exec(r); return m ? [m[1], +m[2]] : [r, 0]; };
-  return DOC.groups
-    .map((g) => ({ g, b: batchOf(g), first: nat(g.parts[0].ref) }))
-    .sort((a, b) => {
-      const ba = a.b ? a.b.n : 999, bb = b.b ? b.b.n : 999;
-      if (ba !== bb) return ba - bb;
-      const pa = a.first, pb = b.first;
-      return pa[0] !== pb[0] ? (pa[0] < pb[0] ? -1 : 1) : pa[1] - pb[1];
-    });
+  return placementGroups.map((g) => ({ g, b: batchOf(g) }));
 }
 
 function prepStatText() {
   return ui(`已备 ${prep.size} / ${DOC.groups.length} 组　空格=备好下一组　←/→ 前后走　点卡片打勾`, `Prepared ${prep.size} / ${DOC.groups.length} groups · Space: check and advance · ←/→: move · Click card to toggle`);
 }
 
-let prepList = [];    // 打开期间的固定顺序（批次→编号），空格/方向键在上面走
+let prepList = [];    // 打开期间的固定摆盘顺序，空格/方向键在上面走
 let prepCursor = 0;
 let prepFilterStr = "";
 
@@ -1586,6 +2849,8 @@ function prepMatch(x) {
     || (x.g.spec || "").toLowerCase().includes(f)
     || (x.g.size || "").toLowerCase().includes(f)
     || (x.g.fp || "").toLowerCase().includes(f)
+    || (x.g.lcsc || "").toLowerCase().includes(f)
+    || tubeMatches(x.g).some(({ position }) => position.toLowerCase() === f)
     || x.g.parts.some((p) => p.ref.toLowerCase().includes(f));
 }
 
@@ -1604,12 +2869,12 @@ function renderPrep(displayOnly = false) {
   const body = $("prepBody");
   clear(body);
   const vis = prepVisible();
-  let lastBatch = null, grid = null;
+  let lastKind = null, grid = null;
   for (const { x: { g, b }, i } of vis) {
-    const label = b ? ui(`第 ${b.n} 批（${b.name}）`, `Batch ${b.n} (${b.name})`) : ui("库存 / 未在采购表", "Stock / not in purchase list");
-    if (label !== lastBatch) {
+    const label = TUBE_KINDS[g.kind] ? dataText(g.kind) : ui("其他元件", "Other parts");
+    if (label !== lastKind) {
       body.appendChild(h("div", { class: "prepBatchHead", text: label }));
-      lastBatch = label;
+      lastKind = label;
       grid = null;
     }
     if (!grid) { grid = h("div", { class: "prepGrid" }); body.appendChild(grid); }
@@ -1619,14 +2884,14 @@ function renderPrep(displayOnly = false) {
         h("span", { class: "slotNo" },
           h("span", { class: "lbl", text: ui("料位", "Slot") }),
           h("b", { text: slotOf(g) })),
-        b ? h("span", { class: "tag batch", text: ui(`第 ${b.n} 批`, `Batch ${b.n}`) })
+        b ? h("span", { class: "tag batch", text: ui(`第 ${b.n} 批 · ${b.name}`, `Batch ${b.n} · ${b.name}`) })
           : h("span", { class: "tag", text: ui("无批次", "No batch") }),
         h("span", { class: "qty", text: `×${g.qty}` }),
       ),
-      // 位号优先：备料时脑子里是 U16/Q2，不是型号
       h("div", { class: "mid" },
-        h("span", { class: "refsBig", text: refsTxt, title: refsTxt })),
-      h("div", { class: "specLine", text: `${dataText(g.spec || g.key)} · ${g.size || g.fp}` }),
+        h("span", { class: "refsBig", text: `${dataText(g.spec || g.key)} · ${g.size || g.fp}` })),
+      h("div", { class: "specLine", text: refsTxt, title: refsTxt }),
+      renderTubePickup(g),
     );
     card.addEventListener("click", () => {
       prepCursor = i;
@@ -1646,11 +2911,13 @@ function renderPrep(displayOnly = false) {
 
 function openPrep() {
   prepList = prepSortedGroups();
-  // 永远落在第一个还没备的组上：续备不用一路按空格
+  // 落在正在贴的这一组：卡片和它对应的管位一起高亮，顺着摆盘纸找料
+  const here = DOC && FLAT[cursor] ? prepList.findIndex((x) => x.g === FLAT[cursor].group) : -1;
   const first = prepList.findIndex((x) => !prep.has(x.g.key));
-  prepCursor = first >= 0 ? first : Math.max(0, prepList.length - 1);
-  renderPrep();
+  prepCursor = here >= 0 ? here : first >= 0 ? first : Math.max(0, prepList.length - 1);
+  // 先显示再画：隐藏状态下 scrollIntoView 不生效，列表会停在顶部。
   $("prepSheet").classList.add("on");
+  renderPrep();
 }
 
 function closePrep() {
@@ -1668,37 +2935,40 @@ $("prepFilter").addEventListener("input", (e) => {
   renderPrep();
 });
 
-// 打印配料纸：**一张 A4、100 个小格**（10 列 × 10 行），按**贴片顺序**编号。
-// 料位 01 = 第一种要贴的料（芯片），格号即消耗顺序；元件放进对应格子，
-// 贴片时换料卡报「料位 NN」照号取料。
+// 配料纸每一页最多 100 格，料位编号与备料清单和换料卡相同。
 function buildPrintSheet() {
   const root = $("printSheet");
   clear(root);
-  root.appendChild(h("div", { class: "printHead" },
-    h("span", { class: "t", text: ui(`${DOC.title} · 备料摆放格（按贴片顺序）`, `${dataText(DOC.title)} · Preparation grid (assembly order)`) }),
-    h("span", { class: "s", text: ui(`料位号 = 贴片顺序（芯片→连接器→…→电阻），元件放入对应格；贴片时换料卡报「料位 NN」照号取料。`, `Slot number = assembly order (ICs → connectors → … → resistors). Place parts in their numbered cells; follow the slot shown on each change-parts card.`) }),
-  ));
-  const grid = h("div", { class: "printGrid" });
-  root.appendChild(grid);
-  DOC.groups.forEach((g, i) => {
-    const b = batchOf(g);
-    const sourceSpec = g.spec || g.key;
-    const displaySpec = dataText(sourceSpec);
-    grid.appendChild(h("div", { class: "cell" + (displaySpec !== sourceSpec ? " translated" : "") },
-      h("div", { class: "cTop" },
-        h("span", { class: "cNo", text: String(i + 1).padStart(2, "0") }),
-        h("span", { class: "cBat" + (b ? "" : " none"), text: b ? ui(`${b.n}批`, `B${b.n}`) : ui("库", "Stock") }),
-        h("span", { class: "cQty", text: `×${g.qty}` }),
-      ),
-      h("div", { class: "cSpec", text: displaySpec }),
-      // 丝印号只对单件组显示：一颗料对一位号（Y1、U9），核对最有用；
-      // 多件组的位号列在网页备料卡片上看，纸面不挤
-      h("div", { class: "cFp", text: (g.parts.length === 1 ? g.parts[0].ref + " · " : "") + (g.size || g.fp) }),
-    ));
-  });
+  const perPage = 100;
+  const pages = Math.ceil(placementGroups.length / perPage);
+  for (let index = 0; index < pages; index++) {
+    const grid = h("div", { class: "printGrid" });
+    const first = index * perPage;
+    for (const g of placementGroups.slice(first, first + perPage)) {
+      const b = batchOf(g);
+      const sourceSpec = g.spec || g.key;
+      const displaySpec = dataText(sourceSpec);
+      const kindAndSize = [TUBE_KINDS[g.kind], g.size || g.fp].filter(Boolean).join(" · ");
+      grid.appendChild(h("div", { class: "cell" + (displaySpec !== sourceSpec ? " translated" : "") },
+        h("div", { class: "cTop" },
+          h("span", { class: "cNo", text: slotOf(g) }),
+          h("span", { class: "cBat" + (b ? "" : " none"), text: b ? ui(`${b.n}批`, `B${b.n}`) : ui("库", "Stock") }),
+          h("span", { class: "cQty", text: `×${g.qty}` }),
+        ),
+        h("div", { class: "cSpec", text: displaySpec }),
+        h("div", { class: "cFp", text: g.parts.length === 1 ? [kindAndSize, g.parts[0].ref].join(" · ") : kindAndSize }),
+      ));
+    }
+    root.appendChild(h("section", { class: "printPage" },
+      h("div", { class: "printHead" },
+        h("span", { class: "t", text: ui(`${DOC.title} · 备料摆放格 · ${index + 1}/${pages}`, `${dataText(DOC.title)} · Preparation grid · ${index + 1}/${pages}`) }),
+        h("span", { class: "s", text: ui("电容、电阻、电感分组，组内按标称值从小到大；换料时按料位号取料。", "Capacitors, resistors and inductors are grouped by type and sorted by nominal value. Pick parts by slot number.") }),
+      ), grid));
+  }
 }
 
 $("btnPrepPrint").addEventListener("click", () => {
+  document.body.classList.remove("printingTubes");
   buildPrintSheet();
   window.print();
 });
@@ -1711,6 +2981,7 @@ $("btnPrepClear").addEventListener("click", () => {
 
 // ── 键盘 ────────────────────────────────────────────────────
 document.addEventListener("keydown", (e) => {
+  if ($("tubeBox").open) return;
   if (!$("app").classList.contains("on")) return;
   // 备料搜索框里打字：不触发任何快捷键，Esc 清空并退出输入
   if (e.target && e.target.id === "prepFilter") {
