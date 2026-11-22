@@ -311,15 +311,15 @@ test("tube box records physical parts, counts by keyboard and prints only essent
 
   // Lid index: position, value, type and package only.
   await page.locator("#tubeShowPrint").click();
-  // 盒盖 140 × 140 mm，A4 一张 1:1 打完，没有 A2/拼接选项。
-  assert.equal(await page.locator("#tubePrintWidth").inputValue(), "140");
-  assert.equal(await page.locator("#tubePrintHeight").inputValue(), "140");
+  // 盒盖 130 × 130 mm，A4 一张 1:1 打完，没有 A2/拼接选项。
+  assert.equal(await page.locator("#tubePrintWidth").inputValue(), "130");
+  assert.equal(await page.locator("#tubePrintHeight").inputValue(), "130");
   assert.equal(await page.locator("#tubePrintTiled").count(), 0);
   assert.equal(await page.locator("#tubePreview .tubePrintCell").count(), 100);
   assert.equal(await page.locator("#tubePreview .tubePrintPage").count(), 1);
-  assert.match(await page.locator("#tubePrintWarning").textContent(), /A4 · 297 × 210 mm · 1 页 · 每格 14\.0 × 14\.0 mm/);
+  assert.match(await page.locator("#tubePrintWarning").textContent(), /A4 · 297 × 210 mm · 1 页 · 每格 13\.0 × 13\.0 mm/);
   const cellMm = await page.locator("#tubePreview .tubePrintCell").first().evaluate((el) => el.getBoundingClientRect().width * 25.4 / 96);
-  assert.ok(Math.abs(cellMm - 14) < 0.3, `cell should lay out at 14 mm, got ${cellMm}`);
+  assert.ok(Math.abs(cellMm - 13) < 0.3, `cell should lay out at 13 mm, got ${cellMm}`);
   const printed = (position) => page.locator(`#tubePreview .tubePrintCell[data-position="${position}"]`);
   assert.equal(await printed("A1").locator(".tubePrintValue").textContent(), "100nF");
   assert.equal(await printed("A1").locator(".tubePrintMeta").textContent(), "C · 0402");
@@ -366,12 +366,12 @@ test("tube box records physical parts, counts by keyboard and prints only essent
   await page.locator("#tubePrintHeight").fill("400");
   assert.equal(await page.locator("#tubeDoPrint").isDisabled(), true);
   assert.match(await page.locator("#tubePrintWarning").textContent(), /超出 A4 可打印范围/);
-  await page.locator("#tubePrintWidth").fill("140");
-  await page.locator("#tubePrintHeight").fill("140");
+  await page.locator("#tubePrintWidth").fill("130");
+  await page.locator("#tubePrintHeight").fill("130");
   assert.equal(await page.locator("#tubeDoPrint").isEnabled(), true);
   await page.locator("#tubePrintMode").selectOption("lid");
-  assert.equal(await page.locator("#tubePrintWidth").inputValue(), "140");
-  assert.equal(await page.locator("#tubePrintHeight").inputValue(), "140");
+  assert.equal(await page.locator("#tubePrintWidth").inputValue(), "130");
+  assert.equal(await page.locator("#tubePrintHeight").inputValue(), "130");
   assert.equal(await page.locator("#tubePreview .tubePrintCell").count(), 100);
   assert.equal(await page.locator("#tubePreview .tubePrintPage").count(), 1);
   await page.locator("#tubePrintMode").selectOption("labels");

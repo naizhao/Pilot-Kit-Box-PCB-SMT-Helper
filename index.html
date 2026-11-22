@@ -441,14 +441,14 @@ footer .sp{flex:1}
 }
 /* 盒顶一格 40 mm 见方：只放管位、容量、类型和封装，字号才放得大 */
 .tubePrintCell{
-  /* 14 × 14 mm 一格：只能放三行，字号按这个实际尺寸定 */
-  border:0.25mm solid #222;padding:0.7mm;overflow:hidden;
+  /* 13 × 13 mm 一格：只能放三行，字号按这个实际尺寸定 */
+  border:0.25mm solid #222;padding:0.6mm;overflow:hidden;
   display:flex;flex-direction:column;justify-content:safe center;gap:0.2mm;
   font-family:sans-serif;overflow-wrap:anywhere;min-width:0;min-height:0;
 }
 .tubePrintCell>*{flex:none}
-.tubePrintCell .tubePrintCode{font:700 5.5pt/1.05 ui-monospace,monospace;color:#555}
-.tubePrintCell .tubePrintValue{font:800 9.5pt/1.05 sans-serif;letter-spacing:-.2px}
+.tubePrintCell .tubePrintCode{font:700 5pt/1.05 ui-monospace,monospace;color:#555}
+.tubePrintCell .tubePrintValue{font:800 9pt/1.05 sans-serif;letter-spacing:-.2px}
 .tubePrintCell .tubePrintMeta{font:600 5.5pt/1.1 sans-serif;color:#333}
 .tubePrintLabels .tubePrintCell{padding:0.4mm;gap:0}
 .tubePrintLabels .tubePrintCode{font-size:5pt;line-height:1}
@@ -1927,11 +1927,11 @@ window.addEventListener("storage", (event) => {
 });
 
 // Three paper layouts use the same physical positions and counted stock.
-// 盒盖是 140 × 140 mm：10 × 10 格、每格 14 × 14 mm。A4 纸一张就能 1:1 打完，
+// 盒盖是 130 × 130 mm：10 × 10 格、每格 13 × 13 mm。A4 纸一张就能 1:1 打完，
 // 不拼接、不缩放到 A2/A3，页数永远是 1 页。
 const TUBE_PRINT_SIZES = {
-  paper: { width: "140", height: "140" },
-  lid: { width: "140", height: "140" },
+  paper: { width: "130", height: "130" },
+  lid: { width: "130", height: "130" },
   labels: { width: "", height: "" },
 };
 const TUBE_PAGE = { name: "A4", width: 297, height: 210 };
