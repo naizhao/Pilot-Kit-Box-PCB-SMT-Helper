@@ -91,8 +91,8 @@ test("tube box records physical parts, counts by keyboard and prints only essent
   await page.locator("#tubeSource").getByText(/建议按 V5\.3/).waitFor();
   assert.equal(await box.locator("[data-tube-position]").count(), 100);
   assert.match(await page.locator("#tubeGridStatus").textContent(), /已登记 0 格/);
-  assert.match(await page.locator("#tubeGridStatus").textContent(), /建议 83 格/);
-  assert.match(await page.locator("#tubeGridStatus").textContent(), /备用 17 格/);
+  assert.match(await page.locator("#tubeGridStatus").textContent(), /建议 98 格/);
+  assert.match(await page.locator("#tubeGridStatus").textContent(), /备用 2 格/);
   assert.equal(await page.locator("#tubeQuantity").inputValue(), "");
   assert.equal(await page.locator("#tubeQuantity").getAttribute("placeholder"), "待盘点");
   assert.match(await page.locator("#tubeSlotDetails").textContent(), /建议/);
@@ -106,7 +106,7 @@ test("tube box records physical parts, counts by keyboard and prints only essent
       const [, spec, size] = node.getAttribute("aria-label").split(" · ");
       return { spec: spec.replace(/^建议 /, ""), size };
     }));
-  assert.equal(suggestions.length, 80);
+  assert.equal(await page.locator("#tubeGrid [data-tube-position].suggested").count(), 98);
   // 片式小件也进管盒：ESD(0402)、LED(0805)、NTC(0603)，TPESD 在 BOM 里两行只占一格。
   const suggestedPositions = await page.locator("#tubeGrid [data-tube-position]").evaluateAll((nodes) =>
     nodes.filter((node) => node.classList.contains("suggested")).map((node) => node.getAttribute("aria-label")));
@@ -121,38 +121,32 @@ test("tube box records physical parts, counts by keyboard and prints only essent
   assert.match(chip("1N4148WS"), /1N4148WS[\s\S]*· D_SOD-323 ·/);
   assert.match(chip("ME6211C33M5"), /ME6211C33M5[\s\S]*· SOT-23-5 ·/);
   assert.match(chip("TQP3M9008"), /TQP3M9008[\s\S]*· SOT-89-3 ·/);
+  // 只在 V4 用的料也占位：1uH 4x4（保险丝那管已丢弃）
+  assert.match(chip("1uH · 4x4"), /1uH[\s\S]*· 4x4 ·/);
+  // 4×4 这一档的芯片也进：ESSOP-10、QFN4×4、LGA、MSOP、TSSOP。
+  assert.match(chip("CH224K"), /CH224K[\s\S]*· ESSOP-10 ·/);
+  assert.match(chip("SY6970"), /SY6970[\s\S]*· QFN4x4-24 ·/);
+  assert.match(chip("BNO085"), /BNO085[\s\S]*· LGA-28 ·/);
+  // 晶振也进盒：12MHz、48MHz、32.768kHz、26MHz。
+  assert.match(chip("12MHz"), /12MHz CL=10pF[\s\S]*· SMD3225-4P ·/);
+  assert.match(chip("48MHz"), /48MHz CL=7pF[\s\S]*· SMD3225-4P ·/);
+  assert.match(chip("32.768kHz"), /32\.768kHz CL=12\.5pF[\s\S]*· SMD3215-2P ·/);
+  assert.match(chip("26MHz"), /26MHz TCXO[\s\S]*· Crystal_SMD_2520/);
   // 用户已经放好的 3 管固定在 H2/H3/H4。
   assert.match(await cell("H2").getAttribute("aria-label"), /1uF 16V X5R ±10%[\s\S]*· 0603 ·/);
   assert.match(await cell("H3").getAttribute("aria-label"), /22uF 10V X5R[\s\S]*· 1206 ·/);
   assert.match(await cell("H4").getAttribute("aria-label"), /10uF 16V X5R ±10%[\s\S]*· 0805 ·/);
   assert.ok(suggestedPositions.findIndex((label) => /TPESD/.test(label)) > suggestedPositions.findIndex((label) => /6\.8uH/.test(label)),
     "misc chip parts should follow the passives");
-  const kindOf = (spec) => /^[0-9.]+[pnuµmkKMG]?F/i.test(spec) ? "C" : /^[0-9.]+[mkKMG]?Ω/.test(spec) ? "R" : /^[0-9.]+[pnuµmkKMG]?H/i.test(spec) ? "L" : "";
-  const valueOf = (spec) => {
-    const match = spec.match(/^([0-9.]+)\s*([pnuµmkKMG]?)\s*(?:F|Ω|H)/i);
-    if (!match) return Infinity;
-    const scale = { "": 0, p: -12, n: -9, u: -6, "µ": -6, "μ": -6, m: -3, k: 3, K: 3, M: 6, G: 6 }[match[2]];
-    return Number(`${match[1]}e${scale}`);
-  };
-  // 不在 V5.3 BOM 里、但盒子还要留位的两管，按容量插在对应位置，不接在末尾。
-  const itemIndex = (needle) => suggestions.findIndex(({ spec }) => spec.includes(needle));
-  assert.ok(itemIndex("1.5kΩ") < itemIndex("3.32kΩ") && itemIndex("3.32kΩ") < itemIndex("4.7kΩ"),
-    "3.32kΩ should sit between 1.5kΩ and 4.7kΩ");
-  assert.ok(itemIndex("7.5nH") < itemIndex("18nH") && itemIndex("18nH") < itemIndex("27nH"),
-    "18nH should sit between 7.5nH and 27nH");
-  for (const kind of ["C", "R", "L"]) {
-    const rows = suggestions.filter(({ spec }) => kindOf(spec) === kind)
-      .map(({ spec, size }) => ({ package: /^\d{4}$/.test(size) ? Number(size) : 99999, value: valueOf(spec), size }));
-    assert.ok(rows.length > 0, kind + " suggestions should exist");
-    const packages = rows.map(({ package: size }) => size);
-    assert.deepEqual(packages, [...packages].sort((a, b) => a - b), kind + " should group suggestions by package");
-    for (let i = 1; i < rows.length; i++) {
-      if (rows[i].package === rows[i - 1].package) {
-        assert.ok(rows[i].value >= rows[i - 1].value,
-          `${kind} ${rows[i - 1].size} ${rows[i - 1].value} should not come after ${rows[i].value}`);
-      }
-    }
-  }
+  // 固定摆位表：这些位置写死，不再按容量重排。
+  assert.match(await cell("G5").getAttribute("aria-label"), /6\.8uH/);
+  assert.match(await cell("G6").getAttribute("aria-label"), /1uH[\s\S]*SRN4018/);
+  assert.match(await cell("G8").getAttribute("aria-label"), /0\.3pF/);
+  assert.match(await cell("H1").getAttribute("aria-label"), /NTC/);
+  assert.match(await cell("H5").getAttribute("aria-label"), /1uH[\s\S]*4x4/);
+  assert.match(await cell("H7").getAttribute("aria-label"), /1N4148/);
+  assert.equal(await cell("D4").textContent(), "D4");
+  assert.equal(await cell("J10").textContent(), "J10");
   await cell("A1").click();
   assert.equal(await active(), "tubeQuantity");
   assert.equal(await page.locator("#tubeSpec").inputValue(), "2.7pF 50V C0G ±0.25pF");
@@ -203,6 +197,16 @@ test("tube box records physical parts, counts by keyboard and prints only essent
   assert.equal(await cell("C2").locator(".tubeSlotSize").textContent(), "0603");
   assert.doesNotMatch(await box.locator("#tubeGrid").textContent(), /建议|未盘点|备用/);
 
+  // 只看未入库：已入库的格子隐藏，方便补新料；再点一次恢复全盒。
+  await page.locator("#tubeOnlyPending").click();
+  assert.equal(await page.locator("#tubeGrid [data-tube-position]").evaluateAll((nodes) =>
+    nodes.every((node) => node.classList.contains("suggested"))), true);
+  const pendingCount = await page.locator("#tubeGrid [data-tube-position]").count();
+  assert.ok(pendingCount > 0);
+  assert.match(await page.locator("#tubeGridStatus").textContent(), new RegExp(`未入库 ${pendingCount} 格`));
+  await page.locator("#tubeOnlyPending").click();
+  assert.equal(await page.locator("#tubeGrid [data-tube-position]").count(), 100);
+
   // 回车/方向键沿盒面顺序走：已入库的和建议摆位的都算一站，真空格跳过。
   await cell("A1").click();
   assert.equal(await active(), "tubeQuantity");
@@ -250,6 +254,7 @@ test("tube box records physical parts, counts by keyboard and prints only essent
   // Registering a new tube with Enter keeps the newly saved count.
   await page.locator("#tubeFilter").fill("J10");
   await cell("J10").click();
+  // J10 被 pins 留空，点它落在规格框。
   assert.equal(await active(), "tubeSpec");
   await page.locator("#tubeKind").selectOption("C");
   await page.locator("#tubeSpec").fill("47nF 50V X7R ±10%");
@@ -312,8 +317,8 @@ test("tube box records physical parts, counts by keyboard and prints only essent
   await page.locator("#tubeBox .language-select").selectOption("en");
   assert.match(await page.locator("#tubeStepHelp").textContent(), /Enter saves and moves to the next tube/);
   assert.equal(await page.locator("#tubeQuantity").getAttribute("placeholder"), "Awaiting count");
-  assert.match(await cell("A1").getAttribute("title"), /A1 · Capacitor/);
-  assert.doesNotMatch(await cell("A1").getAttribute("title"), /电容|电阻|电感/);
+  assert.match(await cell("A1").getAttribute("aria-label"), /A1 · Capacitor/);
+  assert.doesNotMatch(await cell("A1").getAttribute("aria-label"), /电容|电阻|电感/);
   assert.match(await page.locator("#tubeGridStatus").textContent(), /7 recorded/);
   await page.locator("#tubeBox .language-select").selectOption("zh-CN");
   assert.match(await page.locator("#tubeStepHelp").textContent(), /Enter 保存并跳到下一管/);
@@ -339,9 +344,7 @@ test("tube box records physical parts, counts by keyboard and prints only essent
   // 空格按默认建议摆位印出该放的料，仍然只印类型/封装/容量。
   assert.ok(await printed("A3").locator(".tubePrintValue").count() === 1, "spare suggested slot should print its value");
   assert.doesNotMatch(await printed("A3").textContent(), /颗|LCSC|建议|未盘点|备用/);
-  const blank = page.locator("#tubePreview .tubePrintCell").filter({ hasNot: page.locator(".tubePrintValue") });
-  assert.ok(await blank.count() > 0, "tubes beyond the suggested layout print only the position");
-  assert.match(await blank.first().textContent(), /^[A-J](?:10|[1-9])$/);
+  assert.equal(await page.locator("#tubePreview .tubePrintCell").filter({ hasNot: page.locator(".tubePrintValue") }).count(), 0);
   // 小件印型号而不是“容量”，类型/封装照旧。
   const positionOf = (needle) => page.locator("#tubeGrid [data-tube-position]").evaluateAll((nodes, text) => {
     const hit = nodes.find((node) => node.classList.contains("suggested") && node.getAttribute("aria-label").includes(text));
@@ -430,7 +433,7 @@ test("tube box records physical parts, counts by keyboard and prints only essent
   assert.equal(await position(), "A1");
   assert.equal(await page.locator("#tubeSpec").inputValue(), "2.7pF 50V C0G ±0.25pF");
   assert.match(await page.locator("#tubeGridStatus").textContent(), /已登记 0 格/);
-  assert.match(await page.locator("#tubeGridStatus").textContent(), /建议 83 格/);
+  assert.match(await page.locator("#tubeGridStatus").textContent(), /建议 98 格/);
 
   // 建议 BOM 读不到时退回手动登记，不影响管盒本身。
   const requests = [];
@@ -461,6 +464,40 @@ test("tube box records physical parts, counts by keyboard and prints only essent
   await offlinePage.keyboard.press("Enter");
   assert.equal(await offlinePage.evaluate(() => JSON.parse(localStorage.getItem("pk-assembly-tube-box")).A1.qty), 8);
   await offlineContext.close();
+});
+
+test("one LCSC part split into two BOM groups takes a single tube cell", async (t) => {
+  const browser = await chromium.launch({ channel: "chrome" });
+  t.after(() => browser.close());
+  const context = await browser.newContext();
+  await serveStatic(context);
+  const page = await context.newPage();
+  page.setDefaultTimeout(3000);
+  await page.goto(origin);
+  await page.locator("#btnTubePicker").click();
+  await page.locator("#tubeBox").waitFor({ state: "visible" });
+  await page.locator("#tubeSource").getByText(/建议按 V5\.3/).waitFor();
+
+  // 前提：V5.3 里同一颗料被拆成两组，只有封装占位不同（D_0402_1005Metric / ..._V5_D4）。
+  const v53 = require("../data/v5.3.json");
+  const split = v53.groups.filter((group) => group.lcsc === "C2830293");
+  assert.equal(split.length, 2, "V5.3 keeps both BOM groups for this part");
+  assert.equal(new Set(split.map((group) => group.spec)).size, 1);
+  const refs = [...new Set(split.flatMap((group) => group.parts.map((part) => part.ref)))];
+  assert.ok(refs.length > 1, "the two groups cover different references");
+
+  // 只占一格：计划里规格含 0.3pF 的管位只能有一个。
+  const esd = page.locator('#tubeGrid [data-tube-position][aria-label*="0.3pF"]');
+  assert.equal(await esd.count(), 1, "two BOM groups for one LCSC part must share a single tube cell");
+  // 总格数仍是 98，D4 / J10 仍为空（固定摆位表不动）。
+  assert.equal(await page.locator("#tubeGrid [data-tube-position].suggested").count(), 98);
+  assert.match(await page.locator("#tubeGridStatus").textContent(), /建议 98 格 · 备用 2 格/);
+  for (const empty of ["D4", "J10"]) {
+    assert.equal(await page.locator(`#tubeGrid [data-tube-position="${empty}"]`).textContent(), empty);
+  }
+  // 合并后两组的位号都要能看到，不能丢掉另一组的位号。
+  const pop = await esd.getAttribute("data-pop");
+  for (const ref of refs) assert.match(pop, new RegExp(`(?:^|[^A-Za-z0-9])${ref}(?:[^A-Za-z0-9]|$)`));
 });
 
 test("local CSV previews and saves counts on a static HTTPS site without sending requests", async (t) => {

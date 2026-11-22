@@ -1,35 +1,526 @@
-[
-  {
-    "kind": "电阻",
-    "spec": "3.32kΩ ±1% 62.5mW",
-    "size": "0402",
-    "note": "仅 V4.12 使用；不在 V5.3 BOM 里，但仍占一个管位"
+{
+  "layout": {
+    "A1": {
+      "kind": null,
+      "spec": "2.7pF 50V C0G ±0.25pF",
+      "size": "0402"
+    },
+    "A2": {
+      "kind": null,
+      "spec": "3pF 50V C0G ±0.25pF",
+      "size": "0402"
+    },
+    "A3": {
+      "kind": null,
+      "spec": "3.6pF 50V C0G ±0.25pF",
+      "size": "0402"
+    },
+    "A4": {
+      "kind": null,
+      "spec": "4.7pF 50V C0G ±0.1pF",
+      "size": "0402"
+    },
+    "A5": {
+      "kind": null,
+      "spec": "6.2pF 50V C0G ±0.25pF",
+      "size": "0402"
+    },
+    "A6": {
+      "kind": null,
+      "spec": "8.2pF 50V C0G ±0.1pF",
+      "size": "0402"
+    },
+    "A7": {
+      "kind": null,
+      "spec": "47pF 50V C0G ±5%",
+      "size": "0402"
+    },
+    "A8": {
+      "kind": null,
+      "spec": "100pF 50V C0G ±5%",
+      "size": "0402"
+    },
+    "A9": {
+      "kind": null,
+      "spec": "470pF 50V C0G ±5%",
+      "size": "0402"
+    },
+    "A10": {
+      "kind": null,
+      "spec": "1nF 50V X7R ±10%",
+      "size": "0402"
+    },
+    "B1": {
+      "kind": null,
+      "spec": "10nF 50V X7R ±10%",
+      "size": "0402"
+    },
+    "B2": {
+      "kind": null,
+      "spec": "100nF 50V X7R ±10%",
+      "size": "0402"
+    },
+    "B3": {
+      "kind": null,
+      "spec": "1uF 25V X5R ±10%",
+      "size": "0402"
+    },
+    "B4": {
+      "kind": null,
+      "spec": "3pF 50V C0G ±0.25pF",
+      "size": "0603"
+    },
+    "B5": {
+      "kind": null,
+      "spec": "11pF 50V C0G ±5%",
+      "size": "0603"
+    },
+    "B6": {
+      "kind": null,
+      "spec": "15pF 50V C0G ±5%",
+      "size": "0603"
+    },
+    "B7": {
+      "kind": null,
+      "spec": "18pF 50V C0G ±5%",
+      "size": "0603"
+    },
+    "B8": {
+      "kind": null,
+      "spec": "100pF 50V C0G ±5%",
+      "size": "0603"
+    },
+    "B9": {
+      "kind": null,
+      "spec": "200pF 50V C0G ±5%",
+      "size": "0603"
+    },
+    "B10": {
+      "kind": null,
+      "spec": "1nF 50V X7R ±10%",
+      "size": "0603"
+    },
+    "C1": {
+      "kind": null,
+      "spec": "10nF 50V C0G ±5%",
+      "size": "0603"
+    },
+    "C2": {
+      "kind": null,
+      "spec": "10nF 50V X7R ±10%",
+      "size": "0603"
+    },
+    "C3": {
+      "kind": null,
+      "spec": "47nF 50V X7R ±10%",
+      "size": "0603"
+    },
+    "C4": {
+      "kind": null,
+      "spec": "100nF 50V X7R ±10%",
+      "size": "0603"
+    },
+    "C5": {
+      "kind": null,
+      "spec": "1uF 25V X5R ±10%",
+      "size": "0603"
+    },
+    "C6": {
+      "kind": null,
+      "spec": "4.7uF 16V X5R ±10%",
+      "size": "0603"
+    },
+    "C7": {
+      "kind": null,
+      "spec": "10uF 25V X5R ±10%",
+      "size": "0805"
+    },
+    "C8": {
+      "kind": null,
+      "spec": "22uF 25V X5R ±20%",
+      "size": "0805"
+    },
+    "C9": {
+      "kind": null,
+      "spec": "10uF 25V X5R ±10%",
+      "size": "1206"
+    },
+    "C10": {
+      "kind": null,
+      "spec": "22uF 25V X5R ±10%",
+      "size": "1206"
+    },
+    "D1": {
+      "kind": null,
+      "spec": "10Ω ±1% 62.5mW",
+      "size": "0402"
+    },
+    "D2": {
+      "kind": null,
+      "spec": "52.3Ω ±1% 62.5mW",
+      "size": "0402"
+    },
+    "D3": {
+      "kind": null,
+      "spec": "1.5kΩ ±0.1% 62.5mW 25ppm/℃",
+      "size": "0402"
+    },
+    "D5": {
+      "kind": null,
+      "spec": "4.7kΩ ±0.1% 62.5mW 25ppm/℃",
+      "size": "0402"
+    },
+    "D6": {
+      "kind": null,
+      "spec": "4.7kΩ ±1% 62.5mW",
+      "size": "0402"
+    },
+    "D7": {
+      "kind": null,
+      "spec": "10kΩ ±1% 62.5mW",
+      "size": "0402"
+    },
+    "D8": {
+      "kind": null,
+      "spec": "24.9kΩ ±1% 62.5mW",
+      "size": "0402"
+    },
+    "D9": {
+      "kind": null,
+      "spec": "0Ω ±1% 100mW",
+      "size": "0603"
+    },
+    "D10": {
+      "kind": null,
+      "spec": "27Ω ±1% 100mW",
+      "size": "0603"
+    },
+    "E1": {
+      "kind": null,
+      "spec": "33Ω ±1% 100mW",
+      "size": "0603"
+    },
+    "E2": {
+      "kind": null,
+      "spec": "180Ω ±1% 100mW",
+      "size": "0603"
+    },
+    "E3": {
+      "kind": null,
+      "spec": "1kΩ ±1% 100mW",
+      "size": "0603"
+    },
+    "E4": {
+      "kind": null,
+      "spec": "2.2kΩ ±1% 100mW",
+      "size": "0603"
+    },
+    "E5": {
+      "kind": null,
+      "spec": "3.3kΩ ±1% 100mW",
+      "size": "0603"
+    },
+    "E6": {
+      "kind": null,
+      "spec": "4.7kΩ ±1% 100mW",
+      "size": "0603"
+    },
+    "E7": {
+      "kind": null,
+      "spec": "5.62kΩ ±1% 100mW",
+      "size": "0603"
+    },
+    "E8": {
+      "kind": null,
+      "spec": "10kΩ ±1% 100mW",
+      "size": "0603"
+    },
+    "E9": {
+      "kind": null,
+      "spec": "30kΩ ±1% 100mW",
+      "size": "0603"
+    },
+    "E10": {
+      "kind": null,
+      "spec": "31.6kΩ ±1% 100mW",
+      "size": "0603"
+    },
+    "F1": {
+      "kind": null,
+      "spec": "100kΩ ±1% 100mW",
+      "size": "0603"
+    },
+    "F2": {
+      "kind": null,
+      "spec": "150kΩ ±1% 100mW",
+      "size": "0603"
+    },
+    "F3": {
+      "kind": null,
+      "spec": "470kΩ ±1% 100mW",
+      "size": "0603"
+    },
+    "F4": {
+      "kind": null,
+      "spec": "0.5Ω ±1% 250mW ±400ppm/℃",
+      "size": "1206"
+    },
+    "F5": {
+      "kind": null,
+      "spec": "6.2nH ±5% Q≥25@250MHz SRF>6GHz",
+      "size": "0402"
+    },
+    "F6": {
+      "kind": null,
+      "spec": "6.8nH 绕线高Q",
+      "size": "0402"
+    },
+    "F7": {
+      "kind": null,
+      "spec": "7.5nH 绕线高Q",
+      "size": "0402"
+    },
+    "F8": {
+      "kind": null,
+      "spec": "18nH",
+      "size": "0402"
+    },
+    "F9": {
+      "kind": null,
+      "spec": "27nH 绕线 SRF≥3.5GHz",
+      "size": "0402"
+    },
+    "F10": {
+      "kind": null,
+      "spec": "33nH 绕线 SRF≥2.35GHz",
+      "size": "0402"
+    },
+    "G1": {
+      "kind": null,
+      "spec": "100nH 绕线 SRF≥1.4GHz",
+      "size": "0402"
+    },
+    "G2": {
+      "kind": null,
+      "spec": "68nH ±5% DCR≤0.38Ω SRF≥2.2GHz",
+      "size": "0603"
+    },
+    "G3": {
+      "kind": null,
+      "spec": "100nH ±5% SRF≥1.8GHz",
+      "size": "0603"
+    },
+    "G4": {
+      "kind": null,
+      "spec": "330nH ±5% DCR≤1.4Ω SRF≥600MHz",
+      "size": "0805"
+    },
+    "G5": {
+      "kind": null,
+      "spec": "6.8uH 绕线",
+      "size": "0805"
+    },
+    "G6": {
+      "kind": null,
+      "spec": "1uH Isat≥5A",
+      "size": "L_Bourns-SRN4018"
+    },
+    "G7": {
+      "kind": null,
+      "spec": "4.7uH Isat≥3A",
+      "size": "L_Coilcraft_XxL4030"
+    },
+    "G8": {
+      "kind": null,
+      "spec": "TPESD8L3.3 0.3pF",
+      "size": "0402"
+    },
+    "G9": {
+      "kind": null,
+      "spec": "LED 红",
+      "size": "0805"
+    },
+    "G10": {
+      "kind": null,
+      "spec": "LED 黄",
+      "size": "0805"
+    },
+    "H1": {
+      "kind": null,
+      "spec": "NCP18XH103F03RB 10k NTC",
+      "size": "0603"
+    },
+    "H2": {
+      "kind": "电容",
+      "spec": "1uF 16V X5R ±10%",
+      "size": "0603"
+    },
+    "H3": {
+      "kind": "电容",
+      "spec": "22uF 10V X5R",
+      "size": "1206"
+    },
+    "H4": {
+      "kind": "电容",
+      "spec": "10uF 16V X5R ±10%",
+      "size": "0805"
+    },
+    "H5": {
+      "kind": null,
+      "spec": "1uH",
+      "size": "4x4"
+    },
+    "H6": {
+      "kind": "晶振",
+      "spec": "26MHz TCXO ≤2.5ppm",
+      "size": "Crystal_SMD_2520-4Pin_2.5x2.0mm"
+    },
+    "H7": {
+      "kind": "二极管",
+      "spec": "1N4148WS",
+      "size": "D_SOD-323"
+    },
+    "H8": {
+      "kind": null,
+      "spec": "CH224K",
+      "size": "ESSOP-10"
+    },
+    "H9": {
+      "kind": "晶振",
+      "spec": "32.768kHz CL=12.5pF",
+      "size": "SMD3215-2P"
+    },
+    "H10": {
+      "kind": "晶振",
+      "spec": "12MHz CL=10pF",
+      "size": "SMD3225-4P"
+    },
+    "I1": {
+      "kind": "晶振",
+      "spec": "48MHz CL=7pF",
+      "size": "SMD3225-4P"
+    },
+    "I2": {
+      "kind": "芯片",
+      "spec": "BMP388",
+      "size": "LGA-10"
+    },
+    "I3": {
+      "kind": "芯片",
+      "spec": "QMC5883P",
+      "size": "LGA-16"
+    },
+    "I4": {
+      "kind": null,
+      "spec": "SY6970",
+      "size": "QFN4x4-24"
+    },
+    "I5": {
+      "kind": "芯片",
+      "spec": "BNO085",
+      "size": "LGA-28"
+    },
+    "I6": {
+      "kind": "芯片",
+      "spec": "AD8313ARMZ",
+      "size": "MSOP-8"
+    },
+    "I7": {
+      "kind": "芯片",
+      "spec": "BK4819QN32SC",
+      "size": "QFN-32-1EP_4x4mm_P0.4mm_EP2.65x2.65mm"
+    },
+    "I8": {
+      "kind": "芯片",
+      "spec": "SGM7222YWQ10/TR",
+      "size": "SGM7222_TQFN-1.8x1.4-10L"
+    },
+    "I9": {
+      "kind": "芯片",
+      "spec": "ME6211C33M5",
+      "size": "SOT-23-5"
+    },
+    "I10": {
+      "kind": null,
+      "spec": "SY7069",
+      "size": "SOT-23-6"
+    },
+    "J1": {
+      "kind": "芯片",
+      "spec": "TPS7A2033PDBVR",
+      "size": "SOT-23-5"
+    },
+    "J2": {
+      "kind": "芯片",
+      "spec": "74LVC2G04GV",
+      "size": "SOT-23-6"
+    },
+    "J3": {
+      "kind": "芯片",
+      "spec": "SGM2593XN6G/TR",
+      "size": "SOT-23-6"
+    },
+    "J4": {
+      "kind": "芯片",
+      "spec": "TLV3501",
+      "size": "SOT-23-6"
+    },
+    "J5": {
+      "kind": "芯片",
+      "spec": "XA17-G4K",
+      "size": "SOT-363"
+    },
+    "J6": {
+      "kind": "芯片",
+      "spec": "TQP3M9008",
+      "size": "SOT-89-3"
+    },
+    "J7": {
+      "kind": "芯片",
+      "spec": "INA3221AIRGVR",
+      "size": "Texas_RGV0016A_VQFN-16-1EP_4x4mm_P0.65mm_EP2.1x2.1mm"
+    },
+    "J8": {
+      "kind": "芯片",
+      "spec": "LM73100RPWR",
+      "size": "TI_RPW0010A_LM73100_2x2"
+    },
+    "J9": {
+      "kind": "芯片",
+      "spec": "TPS7A9001DSKR",
+      "size": "TPS7A90_DSK"
+    }
   },
-  {
-    "kind": "电感",
-    "spec": "18nH",
-    "size": "0402",
-    "note": "仅 V4.12 使用；不在 V5.3 BOM 里，但仍占一个管位"
-  },
-  {
-    "kind": "电容",
-    "spec": "1uF 16V X5R ±10%",
-    "size": "0603",
-    "position": "H2",
-    "note": "可贴 C3/C4/C6/C18/C28/C29/C67/C78/C79/C80"
-  },
-  {
-    "kind": "电容",
-    "spec": "22uF 10V X5R",
-    "size": "1206",
-    "position": "H3",
-    "note": "仅 C76"
-  },
-  {
-    "kind": "电容",
-    "spec": "10uF 16V X5R ±10%",
-    "size": "0805",
-    "position": "H4",
-    "note": "C73/C74/C75（以及 C1 等 5V 位置）"
-  }
-]
+  "parts": [
+    {
+      "kind": "电容",
+      "spec": "1uF 16V X5R ±10%",
+      "size": "0603",
+      "note": "可贴 C3/C4/C6/C18/C28/C29/C67/C78/C79/C80"
+    },
+    {
+      "kind": "电容",
+      "spec": "22uF 10V X5R",
+      "size": "1206",
+      "note": "仅 C76"
+    },
+    {
+      "kind": "电容",
+      "spec": "10uF 16V X5R ±10%",
+      "size": "0805",
+      "note": "C73/C74/C75（以及 C1 等 5V 位置）"
+    },
+    {
+      "kind": "电感",
+      "spec": "1uH",
+      "size": "4x4",
+      "note": "V4 L16"
+    },
+    {
+      "kind": "电感",
+      "spec": "18nH",
+      "size": "0402",
+      "note": "V4 L1；F8 一直在用"
+    }
+  ]
+}

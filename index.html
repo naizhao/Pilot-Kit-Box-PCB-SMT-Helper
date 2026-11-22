@@ -350,6 +350,20 @@ footer .sp{flex:1}
 .prepCard .specLine{margin-top:5px;font-size:12px;color:var(--dim)}
 .prepCard .qty{font:800 30px/1 ui-monospace,monospace;color:var(--cur);margin-left:auto;flex:none}
 .prepCard.on .qty{color:var(--done)}
+/* 同值不同参数的警示：黄橙描边，和「缺料」的红色区分开 */
+.paramWarn{
+  margin-top:9px;padding:7px 9px;border:1.5px solid #f0883e;border-radius:8px;
+  background:rgba(240,136,62,.12);font-size:12px;line-height:1.5;color:#ffbd85;
+  display:flex;flex-direction:column;gap:2px;width:100%;box-sizing:border-box;
+  overflow-wrap:anywhere;
+}
+.paramWarn b{font-size:13px;color:#ff9d4d}
+.paramWarn.compact{margin-top:7px;padding:5px 7px;font-size:11px}
+.paramWarn.compact b{font-size:12px}
+#printSheet .cell .cWarn{
+  margin-top:2px;font-size:7.5pt;font-weight:700;line-height:1.15;color:#b3261e;
+  overflow-wrap:anywhere;
+}
 #prepFilter{
   background:#0d1117;border:1px solid var(--line);border-radius:8px;
   color:inherit;padding:7px 12px;font-size:14px;width:230px;outline:none;
@@ -372,6 +386,10 @@ footer .sp{flex:1}
 #tubeBox input:focus,#tubeBox select:focus{outline:none;border-color:var(--cur)}
 .tubeBody{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(310px,1fr);gap:16px;margin-top:12px;align-items:start}
 #tubeFilter{margin-bottom:8px}
+.tubeFilterRow{display:flex;gap:8px;margin-bottom:8px}
+.tubeFilterRow input{margin:0}
+.tubeFilterRow .act{flex:none;white-space:nowrap}
+[aria-pressed="true"]#tubeOnlyPending{border-color:var(--cur);color:var(--cur)}
 #tubeGrid{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:3px}
 #tubeGrid.filtered{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
 .tubeSlot{padding:4px 3px;min-height:56px;border:1px solid var(--line);border-radius:5px;text-align:center;min-width:0}
@@ -385,6 +403,23 @@ footer .sp{flex:1}
 .tubeSlot.suggested{border-style:dashed}
 .tubeSlot.suggested .tubeSlotValue{color:var(--dim);font-weight:600}
 #tubeSource{margin:-4px 0 6px}
+/* 管位悬停用自绘浮层，不走浏览器原生 title 提示 */
+.hoverPop{
+  position:fixed;z-index:2147483000;max-width:300px;min-width:150px;
+  background:#11161d;border:1px solid #3d444d;border-radius:9px;
+  box-shadow:0 10px 28px rgba(0,0,0,.55);padding:9px 11px;
+  font:12px/1.5 system-ui,-apple-system,"PingFang SC",sans-serif;color:#e6edf3;
+  pointer-events:none;overflow-wrap:anywhere;
+}
+.hoverPop .popHead{font-weight:700;color:#f0a020;margin-bottom:5px;font-size:13px}
+.hoverPop .popRow{display:flex;gap:8px;align-items:baseline}
+.hoverPop .popRow i{font-style:normal;color:#8b949e;flex:none;min-width:34px}
+.hoverPop .popRow b{font-weight:600;font-family:ui-monospace,monospace;word-break:break-all}
+.hoverPop .popWarn{margin-top:6px;padding-top:6px;border-top:1px solid #3d444d;color:#ffb26b;font-weight:600}
+.tubeSlot.twin{border-color:#f0883e}
+.tubeSlot.twin .tubeSlotValue{color:#ffb26b}
+.tubeSlot.twin{border-width:2px;box-shadow:0 0 0 1px #f0883e55}
+.tubeSlotWarn{font-size:10px;color:#ffb26b}
 .tubeSlot[aria-pressed="true"]{border-color:var(--cur);color:var(--cur)}
 .tubeSlot:hover,.tubeSlot:focus-visible{border-color:var(--peer)}
 #tubeForm{display:grid;gap:12px;align-content:start;border:1px solid var(--line);border-radius:10px;padding:14px}
@@ -450,6 +485,7 @@ footer .sp{flex:1}
 .tubePrintCell .tubePrintCode{font:700 5pt/1.05 ui-monospace,monospace;color:#555}
 .tubePrintCell .tubePrintValue{font:800 9pt/1.05 sans-serif;letter-spacing:-.2px}
 .tubePrintCell .tubePrintValue.long{font-size:7pt}
+.tubePrintCell .tubePrintValue.longer{font-size:6pt}
 .tubePrintCell .tubePrintMeta{font:600 5.5pt/1.1 sans-serif;color:#333}
 .tubePrintCell .tubePrintMeta.long{font-size:5pt}
 .tubePrintLabels .tubePrintCell{padding:0.4mm;gap:0}
@@ -676,7 +712,10 @@ footer .sp{flex:1}
   <div class="tubeBody">
     <div>
       <label for="tubeFilter">搜索管盒</label>
-      <input id="tubeFilter" type="search">
+      <div class="tubeFilterRow">
+        <input id="tubeFilter" type="search">
+        <button type="button" class="act" id="tubeOnlyPending" aria-pressed="false">未入库</button>
+      </div>
       <div id="tubeGrid"></div>
     </div>
     <form id="tubeForm">
@@ -693,6 +732,9 @@ footer .sp{flex:1}
             <option value="D">D · 二极管</option>
             <option value="RT">RT · 热敏</option>
             <option value="U">U · 芯片</option>
+            <option value="Q">Q · 晶体管</option>
+            <option value="F">F · 保险丝</option>
+            <option value="Y">Y · 晶振</option>
           </select>
         </label>
         <label>封装 <input id="tubeSize" maxlength="60" autocomplete="off" placeholder="0402"></label>
@@ -823,6 +865,7 @@ const STATIC_EN = {
   "取消": "Cancel",
   "清空此管位": "Clear this tube",
   "清空整盒": "Clear the box",
+  "未入库": "Not stored",
   "盘点": "Stock",
   "打印管盒": "Tube box printing",
   "打印内容": "Print layout",
@@ -1014,10 +1057,13 @@ const TUBE_POSITIONS = [..."ABCDEFGHIJ"].flatMap((row) =>
 const TUBE_KINDS = { "电容": "C", "电阻": "R", "电感": "L" };
 /* 能装进 1.8 / 2 mL 管的是「小封装」：片式 0402/0603/0805/1206 和
    SOT-23/SOT-323/SOT-363/SOT-89/SOD-323 这一类；QFN、LGA、SOIC、连接器不进盒。 */
-const TUBE_BIN_KINDS = { ...TUBE_KINDS, "二极管": "D", "热敏": "RT" };
-const TUBE_KIND_NAMES = { C: "电容", R: "电阻", L: "电感", D: "二极管", RT: "热敏", U: "芯片" };
-const TUBE_KIND_ORDER = ["C", "R", "L", "D", "RT", "U"];
-const TUBE_SMALL_PACKAGE = /(?:^|[_-])(?:SOT|SOD|SC-?70|SC-?88)|^\d{4}$/i;
+const TUBE_BIN_KINDS = { ...TUBE_KINDS, "二极管": "D", "热敏": "RT", "晶体管": "Q", "保险丝": "F", "晶振": "Y" };
+const TUBE_KIND_NAMES = { C: "电容", R: "电阻", L: "电感", D: "二极管", RT: "热敏", U: "芯片", Q: "晶体管", F: "保险丝", Y: "晶振" };
+const TUBE_KIND_ORDER = ["C", "R", "L", "D", "RT", "Y", "U", "Q", "F"];
+// 小封装：四位公制、SOT/SOD/SC-70，以及 4×4 这一档的 QFN/DFN/ESSOP/TSSOP/MSOP/LGA。
+const TUBE_SMALL_PACKAGE = /(?:^|[_-])(?:SOT|SOD|SC-?70|SC-?88)|^\d{4}$|QFN|DFN|ESSOP|TSSOP|MSOP|LGA|RPW0010A|_DSK/i;
+// 晶振的封装才用 SMD3225 这种写法；SMD3838 是滤波器，不能因为长得像就进盒。
+const TUBE_CRYSTAL_PACKAGE = /SMD[_-]?\d{4}/i;
 const validLcsc = (value) => /^C[0-9]+$/.test(value);
 const knownTubeCount = (qty) => Number.isSafeInteger(qty) && qty >= 0;
 const tubeCount = (qty) => knownTubeCount(qty) ? ui(`${qty} 颗`, `${qty} pcs`) : ui("数量未知", "Count unknown");
@@ -1027,7 +1073,9 @@ let tubePosition = "A1";
 let tubeSelectedRecord;
 let tubeBaseline = "";
 let tubeSuggestionDoc = null;
-let tubeExtras = [];          // 不在最新 BOM 里、但仍要占管位的料（data/tube-extras.json）
+let tubeExtras = [];          // 不在最新 BOM 里、但仍要占管位的料（data/tube-extras.json 的 parts）
+let tubePins = {};            // 旧的固定位置机制（兼容保留）
+let tubeLayout = {};          // 固定摆位表：{ 管位: {kind, spec, size} }，程序不再排序
 let tubeSuggestionRequest = null;
 let tubeSuggestionFailed = false;
 
@@ -1079,7 +1127,14 @@ const tubeIdentityText = (value) => (value || "").normalize("NFKC").replace(/\s+
    SOT、QFN、LGA 这些不是插在管里的。 */
 function tubeKindOf(group) {
   if (TUBE_KINDS[group.kind]) return TUBE_BIN_KINDS[group.kind];   // 阻容感不限封装
-  if (!TUBE_SMALL_PACKAGE.test(String(group.size || ""))) return "";
+  const size = String(group.size || "");
+  const text = `${size} ${group.fp || ""}`;
+  const crystal = group.kind === "晶振" && TUBE_CRYSTAL_PACKAGE.test(text);
+  if (!(/^\d{4}$/.test(size) || TUBE_SMALL_PACKAGE.test(text) || crystal)) return "";
+  // 封装尺寸写在外面的，超过 5 mm 就不进管（QFN7×7、SOIC-8 这类）
+  const dims = [...text.matchAll(/(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)/gi)]
+    .map((match) => Math.max(Number(match[1]), Number(match[2])));
+  if (dims.length && Math.max(...dims) > 5) return "";
   return TUBE_BIN_KINDS[group.kind] || "U";
 }
 
@@ -1124,7 +1179,10 @@ function loadTubeSuggestion() {
   ])
     .then(([doc, extras]) => {
       tubeSuggestionDoc = doc;
-      tubeExtras = Array.isArray(extras) ? extras.filter((item) => item && item.kind && item.spec) : [];
+      const parts = Array.isArray(extras) ? extras : Array.isArray(extras?.parts) ? extras.parts : [];
+      tubeExtras = parts.filter((item) => item && item.kind && item.spec);
+      tubePins = !Array.isArray(extras) && extras && typeof extras.pins === "object" && extras.pins ? extras.pins : {};
+      tubeLayout = !Array.isArray(extras) && extras && typeof extras.layout === "object" && extras.layout ? extras.layout : {};
     })
     .catch(() => { tubeSuggestionFailed = true; })
     .finally(() => {
@@ -1149,9 +1207,13 @@ function tubeSpecVariants(spec) {
   return [`${head}${match[1]}`.trim(), `${head}${match[2]}`.trim()];
 }
 
+/* 管位身份：同一颗料在 BOM 里可能被拆成多组（封装占位不同、位号不同），
+   料号相同且归一化规格相同就算同一颗料，只占一格。不同料号绝不合并——
+   那可能是规格写法一样的两颗料。没有料号时才退到「类型+规格+封装」。 */
 function tubeItemIdentity(item) {
   const lcsc = validLcsc(item.group.lcsc || "") ? item.group.lcsc.toUpperCase() : "";
-  return lcsc || [tubeKindOf(item.group), tubeIdentityText(item.spec), tubeIdentityText(item.group.size || item.group.fp)].join("|");
+  const content = [tubeKindOf(item.group), tubeIdentityText(item.spec), tubeIdentityText(item.group.size || item.group.fp)].join("|");
+  return lcsc ? `${lcsc}|${tubeIdentityText(item.spec)}` : content;
 }
 
 /* 这个建议格是不是已经在盒里了（按料号，或按规格+封装；颜色变体按自己的规格比） */
@@ -1181,6 +1243,36 @@ function tubePlanItems(doc) {
 
 function makeTubePlan() {
   const doc = tubeSuggestionDoc;
+  // 固定摆位表优先：每格放什么料是写死的，程序不再排序，任何增删都不会挪动别的格子。
+  if (Object.keys(tubeLayout).length) {
+    const entries = [...(doc?.groups || []), ...tubeExtras].map((group) => ({
+      group,
+      variants: tubeSpecVariants(group.spec),
+      size: tubeIdentityText(group.size || group.fp),
+    }));
+    const itemOf = (entry, spec) => ({ group: entry.group, spec });
+    const suggestions = new Map();
+    const taken = new Set();   // 已经占过管位的料（料号+规范化规格）
+    for (const [position, ref] of Object.entries(tubeLayout)) {
+      if (!TUBE_POSITIONS.includes(position) || tubeRecords[position]) continue;
+      const spec = tubeIdentityText(ref?.spec);
+      const size = tubeIdentityText(ref?.size);
+      const hit = spec && entries.find((entry) => entry.size === size
+        && entry.variants.some((variant) => tubeIdentityText(variant) === spec));
+      if (!hit) continue;
+      const item = itemOf(hit, hit.variants.find((variant) => tubeIdentityText(variant) === spec));
+      const identity = tubeItemIdentity(item);
+      // 同一颗料只占一格：摆位表里万一重复写了同一颗料，后面的格子留空，不再占第二管。
+      if (taken.has(identity)) continue;
+      taken.add(identity);
+      // 同料的其它 BOM 组（例如 V5 里 D4 的占位封装）不进管，只把位号并进来用于显示。
+      const merged = entries.filter((entry) =>
+        entry.variants.some((variant) => tubeItemIdentity(itemOf(entry, variant)) === identity));
+      if (merged.length > 1) item.merged = merged.map((entry) => entry.group);
+      suggestions.set(position, item);
+    }
+    return { doc, items: [], suggestions, pinned: new Set(), overflow: 0 };
+  }
   const items = tubePlanItems(doc);
   const suggestions = new Map();
   const seen = new Set();
@@ -1211,6 +1303,27 @@ function makeTubePlan() {
     const position = TUBE_POSITIONS.find((p) => !tubeRecords[p] && !suggestions.has(p));
     if (!position) break;
     suggestions.set(position, item);
+  }
+  // 固定位置（data/tube-extras.json 的 pins）：把指定料和同格现有的料互换，
+  // 其他格一格不动。这样只改默认值，不会把整盘重排。
+  for (const [position, wanted] of Object.entries(tubePins)) {
+    if (!TUBE_POSITIONS.includes(position) || tubeRecords[position]) continue;
+    const target = tubeIdentityText(String(wanted || ""));
+    // 空值 = 这一格保留空格，不再自动填建议（例如已出管的 D4 和要留空的 J10）
+    if (!target) { suggestions.delete(position); pinned.add(position); continue; }
+    const from = [...suggestions.entries()].find(([, item]) =>
+      tubeIdentityText(item.spec) === target || tubeIdentityText(item.group.spec) === target)?.[0];
+    if (!from || from === position) continue;
+    const counterpart = tubeIdentityText(String(tubePins[from] || ""));
+    const held = suggestions.get(position);
+    const heldName = tubeIdentityText(held ? held.spec || held.group.spec : "");
+    // 只在两个固定格正好互相持有对方的料时互换；否则不搅动，避免把别的段带乱
+    if (!counterpart || heldName !== counterpart) continue;
+    const moved = suggestions.get(from);
+    suggestions.set(position, moved);
+    suggestions.set(from, held);
+    pinned.add(position);
+    pinned.add(from);
   }
   return { doc, items, suggestions, pinned, overflow: Math.max(0, seen.size - TUBE_POSITIONS.length) };
 }
@@ -1288,6 +1401,10 @@ function tubePackageLabel(size) {
   const text = String(size || "").trim();
   const family = text.match(/SOT-?23|SOT-?323|SOT-?363|SOT-?89|SOD-?123|SOD-?323|SOD-?523|SC-?70|SC-?88/i);
   if (family) return family[0].toUpperCase().replace(/^SOT-?(?=\d)/, "SOT-").replace(/^SOD-?(?=\d)/, "SOD-");
+  const chip = text.match(/TQFN|VQFN|QFN|DFN|ESSOP|TSSOP|MSOP|LGA|RPW0010A|DSK/i);
+  if (chip) return chip[0].toUpperCase();
+  const crystal = text.match(/SMD[_-]?(\d{4})/i);
+  if (crystal) return `SMD${crystal[1]}`;
   if (text.length <= 10) return text;
   const tail = text.split(/[_-]/).pop();
   return tail && tail.length <= 10 && tail.length >= 3 ? tail : text.slice(0, 10);
@@ -1303,6 +1420,7 @@ function tubeValueLabel(spec, kind = "", wide = false) {
   // 二极管、热敏没有“容量”：一格只有 14 mm，型号短就印型号，太长就用后面的说明
   // （NCP18XH103F03RB → 10k NTC，TPESD8L3.3 → 0.3pF）
   const [first, ...rest] = text.split(" ");
+  if (kind === "Y") return dataText(first) || first;   // 晶振印频率（12MHz），不印负载电容
   if (wide) return dataText(text.length <= 16 ? text : first) || first;   // 贴纸比盒顶格宽，短规格整条印
   if (text.length <= 7) return dataText(text) || text;   // 「LED 红」「LED 黄」要能分开
   const tail = rest.join(" ");
@@ -1316,6 +1434,15 @@ function renderTubeGrid() {
   const focused = document.activeElement?.dataset.tubePosition;
   const { filled, counted } = tubeStats();
   const { doc, items, suggestions, pinned, overflow } = makeTubePlan();
+  // 同值不同参数（介质/耐压）的组：必须各占一格，不能合并
+  const twinKeys = new Set();
+  for (const item of suggestions.values()) {
+    const group = { kind: item.group.kind, spec: item.spec, size: item.group.size || item.group.fp };
+    if (!paramTwins(group).length) continue;
+    twinKeys.add(paramSig(group));
+  }
+  const twinGroupCount = twinKeys.size;
+  const twinGaps = tubeTwinGaps();
   renderTubeSuppliers();
   clear(grid);
   grid.classList.toggle("filtered", Boolean(search));
@@ -1327,6 +1454,8 @@ function renderTubeGrid() {
     const spec = record?.spec || suggestion?.spec || "";
     const size = record?.size || (suggestion ? suggestion.group.size || suggestion.group.fp : "") || "";
     const lcsc = record?.lcsc || (suggestion ? suggestion.group.lcsc : "") || "";
+    // 只看「计划里有、但还没入库」的格子：补新料时不用在整盒里找虚线格
+    if (tubeOnlyPending && (record || !suggestion)) continue;
     const fields = [position, kind, spec, dataText(spec), size, lcsc, record?.mpn, record?.supplier];
     if (search && !fields.filter(Boolean).some((field) => String(field).toLowerCase().includes(search))) continue;
     visible++;
@@ -1340,7 +1469,20 @@ function renderTubeGrid() {
       class: "tubeSlot" + (record ? " filled" : suggestion ? " suggested" + (pinned.has(position) ? " pinned" : "") : ""),
       "data-tube-position": position,
       "aria-pressed": String(tubePosition === position),
-      "aria-label": info, title: info,
+      "aria-label": info,
+      "data-pop": JSON.stringify({
+        head: `${position} · ${dataText(TUBE_KIND_NAMES[kind] || kind || "")}`.trim(),
+        rows: [
+          [ui("规格", "Spec"), dataText(spec) || "—"],
+          [ui("封装", "Package"), size || "—"],
+          // 同一颗料在 BOM 里拆成多组时，把这几个位号都列出来，备料时一眼看到全貌
+          !record && suggestion?.merged?.length ? [ui("同料位号", "Same part"),
+            [...new Set(suggestion.merged.flatMap((group) => (group.parts || []).map((part) => part.ref)))].join(" ")] : null,
+          record ? [ui("数量", "Qty"), knownTubeCount(record.qty) ? String(record.qty) : ui("未知", "unknown")] : null,
+          record?.supplier ? [ui("供料商", "Supplier"), record.supplier] : null,
+          (record?.mpn || lcsc) ? [ui("料号", "Part"), record?.mpn || lcsc] : null,
+        ].filter(Boolean),
+      }),
       onclick: () => { flushTubeEdits(); selectTube(position); },
     },
     record ? h("span", { class: "tubeSlotHead" },
@@ -1349,16 +1491,40 @@ function renderTubeGrid() {
       : h("b", { text: position }),
     spec ? h("span", { class: "tubeSlotValue", text: tubeValueLabel(spec, kind) }) : null,
     size ? h("span", { class: "tubeSlotSize", text: tubePackageLabel(size) }) : null);
+    // 同值不同参数的格用橙色描边：必须各占一格，不能合并不混装
+    // 已登记的格和虚线建议格都要判：登记的才是实物，混装风险最大
+    const cellGroup = record
+      ? { kind: TUBE_KIND_NAMES[record.kind] || record.kind, spec, size }
+      : suggestion
+        ? { kind: suggestion.group.kind, spec: suggestion.spec, size }
+        : null;
+    const cellTwins = cellGroup ? paramTwins(cellGroup) : [];
+    if (cellTwins.length) {
+      slot.classList.add("twin");
+      const twinText = cellTwins.map((twin) => {
+        const diff = paramDifference(cellGroup, twin);
+        return `${twin.spec}${diff ? `（${diff}）` : ""}`;
+      }).join("、");
+      const pop = JSON.parse(slot.dataset.pop || "{}");
+      pop.warn = ui(`同值另有 ${twinText}，不能混装`, `same value also exists as ${twinText} — keep separate`);
+      slot.dataset.pop = JSON.stringify(pop);
+      const valueNode = slot.querySelector(".tubeSlotValue");
+      if (valueNode) valueNode.textContent = `⚠ ${valueNode.textContent}`;
+      else slot.appendChild(h("span", { class: "tubeSlotWarn", text: "⚠" }));
+    }
     grid.appendChild(slot);
     if (focused === position) slot.focus({ preventScroll: true });
   }
   $("tubeSource").textContent = doc
     ? [ui(`建议按 ${dataText(doc.title)} 的 C/R/L、封装与容量顺序摆位`, `Suggested layout follows ${dataText(doc.title)} C/R/L order by package then value`),
+      twinGroupCount ? ui(`${twinGroupCount} 组同值不同参数，已各占一格（橙框）${twinGaps.missing ? ` · 还有 ${twinGaps.missing} 种参数版本未入库` : ""}`, `${twinGroupCount} same-value groups with different specs, one cell each (orange)${twinGaps.missing ? ` · ${twinGaps.missing} spec variant(s) still missing` : ""}`) : "",
       overflow ? ui(`${overflow} 种超出盒容量`, `${overflow} groups exceed the box`) : "",
     ].filter(Boolean).join(" · ")
     : tubeSuggestionFailed || (catalogFailed && !tubeSuggestionRequest) ? ui("无法载入建议 BOM，可手动登记。", "Could not load the suggested BOM; register manually.")
     : ui("正在读取建议 BOM…", "Loading suggested BOM…");
-  $("tubeGridStatus").textContent = search
+  $("tubeGridStatus").textContent = tubeOnlyPending
+    ? ui(`未入库 ${visible} 格（按 Enter 入库，清空筛选恢复全盒）`, `${visible} slots not stored (Enter to store, clear the filter to see all)`)
+    : search
     ? ui(`找到 ${visible} 个管位`, `${visible} matching tube positions`)
     : [ui(`已登记 ${filled} 格`, `${filled} recorded`),
       ui(`已确认数量 ${counted} 格`, `${counted} counted`),
@@ -1395,7 +1561,8 @@ function renderTubeSuppliers() {
 function renderTubeKindLabels() {
   const kind = $("tubeKind");
   const names = [ui("C · 电容", "C · Capacitor"), ui("R · 电阻", "R · Resistor"), ui("L · 电感", "L · Inductor"),
-    ui("D · 二极管", "D · Diode"), ui("RT · 热敏", "RT · Thermistor"), ui("U · 芯片", "U · IC")];
+    ui("D · 二极管", "D · Diode"), ui("RT · 热敏", "RT · Thermistor"), ui("U · 芯片", "U · IC"),
+    ui("Q · 晶体管", "Q · Transistor"), ui("F · 保险丝", "F · Fuse"), ui("Y · 晶振", "Y · Crystal")];
   for (const [index, option] of [...kind.options].entries()) option.textContent = names[index];
 }
 
@@ -1493,6 +1660,67 @@ function flushTubeEdits() {
   return saveTube();
 }
 
+/* 管位说明用自绘浮层：原生 title 有延迟、样式不可控，也显示不了橙色警示 */
+const hoverPop = document.createElement("div");
+hoverPop.id = "hoverPop";
+hoverPop.className = "hoverPop";
+hoverPop.hidden = true;
+/* 管盒是 <dialog showModal>，它整体在浏览器顶层，body 上的浮层永远会被压住；
+   把浮层挂进 dialog 内部，才会跟着顶层一起绘制。 */
+($("tubeBox") || document.body).appendChild(hoverPop);
+let hoverAnchor = null;
+
+function hideHoverPop() {
+  hoverAnchor = null;
+  hoverPop.hidden = true;
+}
+
+function showHoverPop(anchor) {
+  let data = {};
+  try { data = JSON.parse(anchor.dataset.pop || "{}"); } catch (error) { data = {}; }
+  const rows = Array.isArray(data.rows) ? data.rows : [];
+  hoverPop.replaceChildren(
+    h("div", { class: "popHead", text: data.head || "" }),
+    ...rows.map(([key, value]) => h("div", { class: "popRow" }, h("i", { text: key }), h("b", { text: value }))),
+    ...(data.warn ? [h("div", { class: "popWarn", text: `⚠ ${data.warn}` })] : []),
+  );
+  hoverPop.hidden = false;
+  const rect = anchor.getBoundingClientRect();
+  const box = hoverPop.getBoundingClientRect();
+  const pad = 8;
+  let left = rect.left + rect.width / 2 - box.width / 2;
+  left = Math.max(pad, Math.min(left, window.innerWidth - box.width - pad));
+  let top = rect.bottom + 6;
+  if (top + box.height > window.innerHeight - pad) top = Math.max(pad, rect.top - box.height - 6);
+  hoverPop.style.left = `${Math.round(left)}px`;
+  hoverPop.style.top = `${Math.round(top)}px`;
+}
+
+function bindTubeHover() {
+  const grid = $("tubeGrid");
+  if (!grid || grid.dataset.hoverBound) return;
+  grid.dataset.hoverBound = "1";
+  grid.addEventListener("mouseover", (event) => {
+    const slot = event.target.closest?.(".tubeSlot");
+    if (!slot || slot === hoverAnchor) return;
+    hoverAnchor = slot;
+    showHoverPop(slot);
+  });
+  grid.addEventListener("mouseout", (event) => {
+    if (!event.relatedTarget || !event.relatedTarget.closest?.(".tubeSlot")) hideHoverPop();
+  });
+  grid.addEventListener("focusin", (event) => {
+    const slot = event.target.closest?.(".tubeSlot");
+    if (!slot) return;
+    hoverAnchor = slot;
+    showHoverPop(slot);
+  });
+  grid.addEventListener("focusout", hideHoverPop);
+  window.addEventListener("scroll", hideHoverPop, true);
+  window.addEventListener("resize", hideHoverPop);
+}
+bindTubeHover();
+
 function openTubeBox() {
   refreshTubeStock();
   loadTubeSuggestion();
@@ -1582,7 +1810,7 @@ function readCsvRecords(text) {
 
 function stockCsvKind(category, model, references) {
   const types = new Set();
-  const codes = ["C", "R", "L", "D", "RT", "U"];
+  const codes = ["C", "R", "L", "D", "RT", "U", "Q", "F", "Y"];
   const explicit = [
     /^(?:c|(?:贴片|电源-)?电容|capacitor|mlcc)$/,
     /^(?:r|(?:贴片|电源-)?电阻|resistor)$/,
@@ -1590,6 +1818,9 @@ function stockCsvKind(category, model, references) {
     /^(?:d|(?:贴片)?二极管|led|diode|esd)$/,
     /^(?:rt|ntc|热敏(?:电阻)?|thermistor)$/,
     /^(?:u|ic|芯片|集成电路)$/,
+    /^(?:q|晶体管|三极管|mosfet|场效应管)$/,
+    /^(?:f|保险丝|熔断器|fuse)$/,
+    /^(?:y|晶振|晶体|crystal|xtal)$/,
   ].findIndex((pattern) => pattern.test(csvLabel(category)));
   if (explicit >= 0) types.add(codes[explicit]);
   // 二极管、热敏、芯片没有网表那样的单位可推，类型以「类型」列为准
@@ -1878,9 +2109,15 @@ function refreshTubeLocations() {
 }
 
 $("btnTubePicker").addEventListener("click", () => openTubeBox());
-$("tubeClose").addEventListener("click", () => $("tubeBox").close());
-$("tubeBox").addEventListener("close", refreshTubeLocations);
+$("tubeClose").addEventListener("click", () => { hideHoverPop(); $("tubeBox").close(); });
+$("tubeBox").addEventListener("close", () => { hideHoverPop(); refreshTubeLocations(); });
+$("tubeBox").addEventListener("cancel", hideHoverPop);
 $("tubeFilter").addEventListener("input", renderTubeGrid);
+$("tubeOnlyPending").addEventListener("click", () => {
+  tubeOnlyPending = !tubeOnlyPending;
+  $("tubeOnlyPending").setAttribute("aria-pressed", String(tubeOnlyPending));
+  renderTubeGrid();
+});
 $("tubeImportFile").addEventListener("change", () => readTubeImport());
 $("tubeImportCancel").addEventListener("click", () => {
   tubeImportConfirmation = null;
@@ -1963,6 +2200,7 @@ const TUBE_MAX_WIDTH = TUBE_PAGE.width - 2 * TUBE_MARGIN;
 const TUBE_MAX_HEIGHT = TUBE_PAGE.height - 2 * TUBE_MARGIN;
 const TUBE_LABEL_GAP = 2;
 let tubePrintMode = "paper";
+let tubeOnlyPending = false;
 let tubePrintLayout = null;
 
 function showTubePanel(print) {
@@ -2075,7 +2313,7 @@ function makeTubePrintPage(layout, block) {
     // 盒顶纸按默认建议摆位印：空格也印出该格该放什么料，只留类型、封装、容量
     grid.appendChild(h("div", { class: "tubePrintCell", "data-position": cell.position },
       h("b", { class: "tubePrintCode", text: cell.position }),
-      cell.value ? h("span", { class: "tubePrintValue" + (cell.value.length > 9 ? " long" : ""), text: cell.value }) : null,
+      cell.value ? h("span", { class: "tubePrintValue" + (cell.value.length > 12 ? " longer" : cell.value.length > 9 ? " long" : ""), text: cell.value }) : null,
       cell.kind || cell.size ? (() => {
         const meta = [cell.kind, tubePackageLabel(cell.size)].filter(Boolean).join("·");
         return h("span", { class: "tubePrintMeta" + (meta.length > 8 ? " long" : ""), text: meta });
@@ -2217,6 +2455,119 @@ function nominalValue(group) {
   if (!match || kind === "C" && match[3] !== "F" || kind === "L" && match[3] !== "H") return Infinity;
   const exponent = { "": 0, f: -15, p: -12, n: -9, "µ": -6, "μ": -6, u: -6, m: -3, k: 3, K: 3, M: 6, G: 9 }[match[2]];
   return Number(`${match[1]}e${exponent}`);
+}
+
+/* 同值、同封装、参数不同（介质或耐压）的料——贴片最容易错的就是它们：
+   管子里看着一模一样，拿错轻则参数漂移，重则耐压不够烧板。
+   这里统一算一次差异，备料卡、换料卡、配料纸、管盒都用同一套判断给警示。 */
+function specVoltage(text) {
+  const match = /(\d+(?:\.\d+)?)\s*V\b/.exec(String(text || ""));
+  return match ? Number(match[1]) : null;
+}
+function specTolerance(text) {
+  const match = /±\s*(\d+(?:\.\d+)?)\s*%/.exec(String(text || ""));
+  return match ? `±${match[1]}%` : "";
+}
+function specDielectric(text) {
+  const match = /(C0G|NP0|X7R|X5R|X7S|Y5V)/i.exec(String(text || ""));
+  if (!match) return "";
+  const code = match[1].toUpperCase();
+  return code === "NP0" ? "C0G" : code;
+}
+function paramSig(group) {
+  return [TUBE_KINDS[group.kind] || group.kind, nominalValue(group), String(group.size || group.fp || "")].join("|");
+}
+/* 两个料差在哪：介质、耐压。空字符串表示参数一致。 */
+function paramDifference(a, b) {
+  const parts = [];
+  const dielectricA = specDielectric(a.spec), dielectricB = specDielectric(b.spec);
+  if (dielectricA !== dielectricB) parts.push(`${dielectricA || "—"}≠${dielectricB || "—"}`);
+  const voltageA = specVoltage(a.spec), voltageB = specVoltage(b.spec);
+  if (voltageA !== voltageB) parts.push(`${voltageA ?? "—"}V≠${voltageB ?? "—"}V`);
+  const tolA = specTolerance(a.spec), tolB = specTolerance(b.spec);
+  if (tolA !== tolB) parts.push(`${tolA || "—"}≠${tolB || "—"}`);
+  // 兜底：规格文字本身就不同（例如只写了「10nF」和「10nF 50V X7R」），也算不同参数
+  const resolvable = (item) => TUBE_KINDS[item.kind] && Number.isFinite(nominalValue(item));
+  if (!parts.length && resolvable(a) && resolvable(b)
+      && tubeIdentityText(a.spec) !== tubeIdentityText(b.spec)) parts.push("规格文字不同");
+  return parts.join("，");
+}
+/* 管盒是首页全局功能，不跟着某块板走；参数对比必须用建议 BOM，
+   否则 DOC 为空，一个双胞胎也比不出来。 */
+function paramDoc() {
+  return tubeSuggestionDoc || DOC || null;
+}
+function paramTwins(group) {
+  // 只对 C/R/L 有意义：二极管、热敏、IC 没有“同值不同参数”的概念
+  if (!TUBE_KINDS[group.kind]) return [];
+  const doc = paramDoc();
+  if (!doc) return [];
+  const sig = paramSig(group);
+  return doc.groups.filter((other) => TUBE_KINDS[other.kind] && other !== group
+    && paramSig(other) === sig && paramDifference(group, other));
+}
+/* 管盒里已登记、同值同封装但参数不同的那一管：实物抓起来毫无区别，必须先提醒。 */
+function tubeConflicts(group) {
+  const kind = tubeKindOf(group);
+  if (!kind) return [];
+  const value = nominalValue(group);
+  if (!Number.isFinite(value)) return [];
+  const size = String(group.size || group.fp || "");
+  return TUBE_POSITIONS.flatMap((position) => {
+    const record = tubeRecords[position];
+    if (!record || record.kind !== kind) return [];
+    if (tubeIdentityText(record.size || "") !== tubeIdentityText(size)) return [];
+    if (nominalValue({ spec: record.spec, kind: group.kind }) !== value) return [];
+    if (sameTubePart({ spec: group.spec, size }, record.spec, record.size)) return [];
+    const diff = paramDifference({ spec: group.spec }, { spec: record.spec });
+    return diff ? [{ position, spec: record.spec, diff }] : [];
+  });
+}
+
+/* 全板口径自检：同值不同参数的组里，还有几种没登记管位。 */
+function tubeTwinGaps() {
+  const all = [...(DOC ? DOC.groups : []), ...tubeExtras];
+  const bySig = new Map();
+  for (const group of all) {
+    const pseudo = { kind: group.kind, spec: group.spec, size: group.size || group.fp };
+    if (!Number.isFinite(nominalValue(pseudo))) continue;
+    const sig = paramSig(pseudo);
+    if (!bySig.has(sig)) bySig.set(sig, []);
+    bySig.get(sig).push(group);
+  }
+  let groups = 0, missing = 0;
+  for (const list of bySig.values()) {
+    if (new Set(list.map((group) => tubeIdentityText(group.spec))).size < 2) continue;
+    groups += 1;
+    // 只统计「登记了一种、另一种还没登记」的组：这才是真的会拿错的状态
+    const states = list.map((group) => {
+      const pseudo = { kind: group.kind, spec: group.spec, size: group.size || group.fp, lcsc: group.lcsc || "" };
+      return tubeMatches(pseudo).length > 0;
+    });
+    if (states.some(Boolean) && states.some((stored) => !stored)) {
+      missing += states.filter((stored) => !stored).length;
+    }
+  }
+  return { groups, missing };
+}
+
+/* 备料卡、换料卡、管盒共用的一条警示：本组该用哪管、哪管绝对不能用。 */
+function renderParamWarning(group, compact = false) {
+  const conflicts = tubeConflicts(group);
+  const twins = paramTwins(group);
+  if (!conflicts.length && !twins.length) return null;
+  const lines = [];
+  for (const conflict of conflicts) {
+    lines.push(ui(`管位 ${conflict.position} 是 ${conflict.spec}（${conflict.diff}），不要用`,
+      `Tube ${conflict.position} is ${conflict.spec} (${conflict.diff}) — do not use`));
+  }
+  for (const twin of twins) {
+    const where = tubeMatches(twin).map((match) => match.position).join("/");
+    lines.push(ui(`${twin.spec}${where ? `（管位 ${where}）` : ""}`, `${twin.spec}${where ? ` (tube ${where})` : ""}`));
+  }
+  return h("div", { class: "paramWarn" + (compact ? " compact" : "") },
+    h("b", { text: ui("⚠ 同值不同参数，别拿错", "⚠ Same value, different spec") }),
+    ...lines.map((text) => h("span", { text })));
 }
 
 /* 摆盘顺序：先 C/R/L，再按封装（0402 → 0603 → 0805 → …），
@@ -2683,7 +3034,10 @@ function renderSwap(g) {
       style: "color:var(--done);border-color:var(--done)" }));
   if (left !== g.qty) meta.appendChild(h("span", { text: ui(`（本组共 ${g.qty}，已贴 ${g.qty - left}）`, `(${g.qty} in group, ${g.qty - left} placed)`) }));
 
-
+  // 换料是唯一会离开板子去翻盒子的时刻，警示放在这里最有用
+  const warn = renderParamWarning(g);
+  if (warn) { warn.style.marginTop = "12px"; $("swap").insertBefore(warn, $("swap").querySelector(".meta") || null); }
+  else $("swap").querySelectorAll(".paramWarn").forEach((node) => node.remove());
 }
 
 function hideSwap() {
@@ -3073,6 +3427,7 @@ function renderPrep(displayOnly = false) {
         h("span", { class: "refsBig", text: `${dataText(g.spec || g.key)} · ${g.size || g.fp}` })),
       h("div", { class: "specLine", text: refsTxt, title: refsTxt }),
       renderTubePickup(g),
+      renderParamWarning(g, true),
     );
     card.addEventListener("click", () => {
       prepCursor = i;
@@ -3138,6 +3493,18 @@ function buildPrintSheet() {
         ),
         h("div", { class: "cSpec", text: displaySpec }),
         h("div", { class: "cFp", text: g.parts.length === 1 ? [kindAndSize, g.parts[0].ref].join(" · ") : kindAndSize }),
+        (() => {
+          const conflicts = tubeConflicts(g);
+          const twins = paramTwins(g);
+          if (!conflicts.length && !twins.length) return null;
+          const parts = [];
+          for (const conflict of conflicts) parts.push(ui(`别用 ${conflict.position}(${conflict.diff})`, `not ${conflict.position} (${conflict.diff})`));
+          for (const twin of twins) {
+            const where = tubeMatches(twin).map((match) => match.position).join("/");
+            parts.push(ui(`${paramDifference(g, twin)}${where ? ` @${where}` : ""}`, `${paramDifference(g, twin)}${where ? ` @${where}` : ""}`));
+          }
+          return h("div", { class: "cWarn", text: `⚠ ${parts.join(" · ")}` });
+        })(),
       ));
     }
     root.appendChild(h("section", { class: "printPage" },
