@@ -78,6 +78,8 @@ PUBLIC_CODE = {"index.html", "i18n-en.js", "tests/test_i18n_data.py", "README.md
 
 
 VERSION_FILE = "data/versions.json"
+# 不在最新 BOM 里、但仍要占管位的料；可选文件，缺失时照常发布。
+EXTRA_DATA = "data/tube-extras.json"
 
 
 def content_versions(files):
@@ -95,10 +97,13 @@ def refresh_versions(directory):
     batch = directory / "batches.json"
     if batch.is_file():
         files["data/batches.json"] = batch.read_bytes()
+    extras = directory / "tube-extras.json"
+    if extras.is_file():
+        files[EXTRA_DATA] = extras.read_bytes()
     write_files(directory, {"versions.json": content_versions(files)})
 
 
-def validate_files(read, prepare=False):
+def validate_files(read, prepare=False, optional=()):
     index_raw = read("data/index.json")
     index = json.loads(index_raw)
     if not isinstance(index, list) or not index:
@@ -126,6 +131,11 @@ def validate_files(read, prepare=False):
                     group["note"] = cleaned
                     changed = True
         files[name] = json.dumps(document, ensure_ascii=False, separators=(",", ":")).encode() if changed else raw
+    for name in optional:
+        try:
+            files[name] = read(name)
+        except (FileNotFoundError, KeyError, IndexError, RuntimeError, ValueError):
+            continue  # 可选文件：仓库里没有就跳过
     files[VERSION_FILE] = content_versions(files)
     return files
 
@@ -165,7 +175,7 @@ def prepare(repository):
         if path.is_symlink() or path.parent.is_symlink():
             raise ValueError("拒绝符号链接公开文件")
         return path.read_bytes()
-    files = validate_files(read, prepare=True)
+    files = validate_files(read, prepare=True, optional=(EXTRA_DATA,))
     for name in PUBLIC_CODE:
         files[name] = read(name)
     check_contents(files)
@@ -179,7 +189,7 @@ def prepare(repository):
 def public_files(repository, ref):
     sha = resolve_commit(repository, ref)
     read = lambda name: read_blob(repository, sha, name)
-    files = validate_files(read)
+    files = validate_files(read, optional=(EXTRA_DATA,))
     # 校验整个提交树，打包则仅限站点所需文件。
     check_public_privacy(repository, sha, allowed=PUBLIC_CODE | files.keys())
     if json.loads(read("_build.json")) != {"source_repository": PUBLISH_REPOSITORY}:
@@ -235,7 +245,7 @@ def staged_files(repository):
         if mode != "100644":
             raise ValueError("暂存树只允许普通文件")
         files[name] = git(repository, "show", f":{name}")
-    allowed = PUBLIC_CODE | set(validate_files(files.__getitem__))
+    allowed = PUBLIC_CODE | set(validate_files(files.__getitem__, optional=(EXTRA_DATA,)))
     if set(files) - allowed:
         raise ValueError("暂存树含非公开白名单文件")
     check_contents(files)

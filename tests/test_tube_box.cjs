@@ -91,8 +91,8 @@ test("tube box records physical parts, counts by keyboard and prints only essent
   await page.locator("#tubeSource").getByText(/建议按 V5\.3/).waitFor();
   assert.equal(await box.locator("[data-tube-position]").count(), 100);
   assert.match(await page.locator("#tubeGridStatus").textContent(), /已登记 0 格/);
-  assert.match(await page.locator("#tubeGridStatus").textContent(), /建议 69 格/);
-  assert.match(await page.locator("#tubeGridStatus").textContent(), /备用 31 格/);
+  assert.match(await page.locator("#tubeGridStatus").textContent(), /建议 71 格/);
+  assert.match(await page.locator("#tubeGridStatus").textContent(), /备用 29 格/);
   assert.equal(await page.locator("#tubeQuantity").inputValue(), "");
   assert.equal(await page.locator("#tubeQuantity").getAttribute("placeholder"), "待盘点");
   assert.match(await page.locator("#tubeSlotDetails").textContent(), /建议/);
@@ -105,7 +105,7 @@ test("tube box records physical parts, counts by keyboard and prints only essent
       const [, spec, size] = node.getAttribute("aria-label").split(" · ");
       return { spec: spec.replace(/^建议 /, ""), size };
     }));
-  assert.equal(suggestions.length, 69);
+  assert.equal(suggestions.length, 71);
   // 片式小件也进管盒：ESD(0402)、LED(0805)、NTC(0603)，TPESD 在 BOM 里两行只占一格。
   const suggestedPositions = await page.locator("#tubeGrid [data-tube-position]").evaluateAll((nodes) =>
     nodes.filter((node) => node.classList.contains("suggested")).map((node) => node.getAttribute("aria-label")));
@@ -125,6 +125,12 @@ test("tube box records physical parts, counts by keyboard and prints only essent
     const scale = { "": 0, p: -12, n: -9, u: -6, "µ": -6, "μ": -6, m: -3, k: 3, K: 3, M: 6, G: 6 }[match[2]];
     return Number(`${match[1]}e${scale}`);
   };
+  // 不在 V5.3 BOM 里、但盒子还要留位的两管，按容量插在对应位置，不接在末尾。
+  const itemIndex = (needle) => suggestions.findIndex(({ spec }) => spec.includes(needle));
+  assert.ok(itemIndex("1.5kΩ") < itemIndex("3.32kΩ") && itemIndex("3.32kΩ") < itemIndex("4.7kΩ"),
+    "3.32kΩ should sit between 1.5kΩ and 4.7kΩ");
+  assert.ok(itemIndex("7.5nH") < itemIndex("18nH") && itemIndex("18nH") < itemIndex("27nH"),
+    "18nH should sit between 7.5nH and 27nH");
   for (const kind of ["C", "R", "L"]) {
     const rows = suggestions.filter(({ spec }) => kindOf(spec) === kind)
       .map(({ spec, size }) => ({ package: /^\d{4}$/.test(size) ? Number(size) : 99999, value: valueOf(spec), size }));
@@ -411,7 +417,7 @@ test("tube box records physical parts, counts by keyboard and prints only essent
   assert.equal(await position(), "A1");
   assert.equal(await page.locator("#tubeSpec").inputValue(), "2.7pF 50V C0G ±0.25pF");
   assert.match(await page.locator("#tubeGridStatus").textContent(), /已登记 0 格/);
-  assert.match(await page.locator("#tubeGridStatus").textContent(), /建议 69 格/);
+  assert.match(await page.locator("#tubeGridStatus").textContent(), /建议 71 格/);
 
   // 建议 BOM 读不到时退回手动登记，不影响管盒本身。
   const requests = [];

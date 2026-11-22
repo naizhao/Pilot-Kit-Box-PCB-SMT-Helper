@@ -1022,6 +1022,7 @@ let tubePosition = "A1";
 let tubeSelectedRecord;
 let tubeBaseline = "";
 let tubeSuggestionDoc = null;
+let tubeExtras = [];          // 不在最新 BOM 里、但仍要占管位的料（data/tube-extras.json）
 let tubeSuggestionRequest = null;
 let tubeSuggestionFailed = false;
 
@@ -1108,12 +1109,19 @@ function loadTubeSuggestion() {
   const id = catalog?.[0]?.id || "";
   if (!id || tubeSuggestionDoc?.id === id || tubeSuggestionRequest) return;
   tubeSuggestionFailed = false;
-  tubeSuggestionRequest = fetchData(`data/${id}.json`)
-    .then((response) => {
+  tubeSuggestionRequest = Promise.all([
+    fetchData(`data/${id}.json`).then((response) => {
       if (!response.ok) throw new Error("Missing BOM");
       return response.json();
+    }),
+    fetchData("data/tube-extras.json")
+      .then((response) => response.ok ? response.json() : [])
+      .catch(() => []),
+  ])
+    .then(([doc, extras]) => {
+      tubeSuggestionDoc = doc;
+      tubeExtras = Array.isArray(extras) ? extras.filter((item) => item && item.kind && item.spec) : [];
     })
-    .then((doc) => { tubeSuggestionDoc = doc; })
     .catch(() => { tubeSuggestionFailed = true; })
     .finally(() => {
       tubeSuggestionRequest = null;
@@ -1160,8 +1168,9 @@ function tubeItemRecorded(item) {
    小件放在最后，不挤动已经排好的阻容感。 */
 function tubePlanItems(doc) {
   if (!doc) return [];
+  const groups = [...doc.groups, ...tubeExtras];
   return TUBE_KIND_ORDER.flatMap((code) =>
-    doc.groups.filter((group) => tubeKindOf(group) === code).sort(comparePlacement)
+    groups.filter((group) => tubeKindOf(group) === code).sort(comparePlacement)
       .flatMap((group) => tubeSpecVariants(group.spec).map((spec) => ({ group, spec }))));
 }
 
@@ -1170,11 +1179,15 @@ function makeTubePlan() {
   const items = tubePlanItems(doc);
   const suggestions = new Map();
   const seen = new Set();
+  const seenContent = new Set();
   for (const item of items) {
-    // 同一管料在 BOM 里可能拆成多组（例如 TPESD 两行），管盒只留一格
+    // 同一管料在 BOM 里可能拆成多组（例如 TPESD 两行），管盒只留一格；
+    // 建议外的补料若与 BOM 里某一组同料，也按规格+封装去重。
     const identity = tubeItemIdentity(item);
-    if (seen.has(identity)) continue;
+    const content = [tubeKindOf(item.group), tubeIdentityText(item.spec), tubeIdentityText(item.group.size || item.group.fp)].join("|");
+    if (seen.has(identity) || seenContent.has(content)) continue;
     seen.add(identity);
+    seenContent.add(content);
     if (tubeItemRecorded(item)) continue;
     const position = TUBE_POSITIONS.find((p) => !tubeRecords[p] && !suggestions.has(p));
     if (!position) break;

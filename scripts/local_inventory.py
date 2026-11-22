@@ -18,6 +18,7 @@ STATIC_ASSETS = {
     "/i18n-en.js": "i18n-en.js",
     "/data/versions.json": "data/versions.json",
     "/data/index.json": "data/index.json",
+    "/data/tube-extras.json": "data/tube-extras.json",
 }
 STATIC_BOARD = re.compile(r"/data/(v\d+(?:\.\d+)*(?:-(?:pwr|nopwr))?)\.json")
 MEDIA_TYPES = {".html": "text/html", ".js": "text/javascript", ".json": "application/json"}
